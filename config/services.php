@@ -18,8 +18,9 @@ return [
         'token' => env('POSTMARK_TOKEN'),
     ],
 
+    // Mise à jour pour utiliser RESEND_API_KEY comme variable d'environnement
     'resend' => [
-        'key' => env('RESEND_KEY'),
+        'key' => env('RESEND_API_KEY'),
     ],
 
     'ses' => [
@@ -35,12 +36,13 @@ return [
         ],
     ],
 
-    // --- AJOUTE LA SECTION GOOGLE CI-DESSOUS ---
+    // Section Google OAuth
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT_URI'),
+        // Ajoute une valeur par défaut pour l'URI de redirection.
+        // REMPLACEZ 'VOTRE_URL_RENDER.COM' par l'URL réelle de votre application Render.com
+        'redirect' => env('GOOGLE_REDIRECT_URI', 'https://jobelardc-app.onrender.com/auth/google/callback'),
     ],
-    // --- FIN DE L'AJOUT ---
 
 ];
