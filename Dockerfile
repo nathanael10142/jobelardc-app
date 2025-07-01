@@ -2,7 +2,6 @@
 FROM php:8.2-apache
 
 # Installer les dépendances système nécessaires.
-# libonig-dev est une dépendance essentielle pour mbstring.
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -17,7 +16,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Installer les extensions PHP nécessaires.
-# L'ordre a peu d'importance tant que les dépendances système sont là.
 RUN docker-php-ext-install mbstring
 RUN docker-php-ext-install pdo_pgsql
 RUN docker-php-ext-install exif
@@ -51,11 +49,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 # Installer les dépendances Composer de Laravel.
 RUN composer install --no-dev --optimize-autoloader
 
-# Exécuter les commandes d'optimisation de Laravel pour la production.
-RUN php artisan optimize:clear
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+# !!!!!!!!!!!!!!!! ATTENTION : LES LIGNES SUIVANTES ONT ÉTÉ SUPPRIMÉES !!!!!!!!!!!!!!!!
+# RUN php artisan optimize:clear
+# RUN php artisan config:cache
+# RUN php artisan route:cache
+# RUN php artisan view:cache
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # Définir les permissions correctes pour les dossiers 'storage' et 'bootstrap/cache'.
 RUN chown -R www-data:www-data storage bootstrap/cache
