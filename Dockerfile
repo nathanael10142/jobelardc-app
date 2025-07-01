@@ -40,25 +40,21 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 # Copier tous les fichiers de l'application Laravel dans le répertoire du serveur web.
 COPY . /var/www/html
 
+# Copier le script de démarrage et le rendre exécutable
+# CECI EST LA LIGNE IMPORTANTE À AJOUTER/VÉRIFIER
+COPY start.sh /var/www/html/start.sh
+RUN chmod +x /var/www/html/start.sh
+
 # Définir le répertoire de travail par défaut pour les commandes futures dans le conteneur.
 WORKDIR /var/www/html
 
-# Installer Composer si ce n'est pas déjà fait dans l'image de base.
+# Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
-
-# Installer les dépendances Composer de Laravel.
 RUN composer install --no-dev --optimize-autoloader
 
-# !!!!!!!!!!!!!!!! ATTENTION : LES LIGNES SUIVANTES ONT ÉTÉ SUPPRIMÉES !!!!!!!!!!!!!!!!
-# RUN php artisan optimize:clear
-# RUN php artisan config:cache
-# RUN php artisan route:cache
-# RUN php artisan view:cache
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-# Définir les permissions correctes pour les dossiers 'storage' et 'bootstrap/cache'.
+# Définir les permissions correctes
 RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
 
-# Exposer le port 80 pour qu'Apache puisse recevoir des requêtes web.
+# Exposer le port 80
 EXPOSE 80
