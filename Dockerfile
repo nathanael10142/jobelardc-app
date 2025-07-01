@@ -2,9 +2,7 @@
 FROM php:8.2-apache
 
 # Installer les dépendances système nécessaires.
-# git, unzip, libpq-dev (pour PostgreSQL)
-# libjpeg-dev, libpng-dev (pour gd, souvent utile avec exif)
-# libzip-dev, zip (pour l'extension zip, utile pour Composer et autres)
+# Ajoutez 'build-essential' pour les outils de compilation de base si ce n'est pas déjà là.
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -13,13 +11,14 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libzip-dev \
     zip \
+    build-essential \
     # Nettoie les fichiers de cache apt pour réduire la taille de l'image.
     && rm -rf /var/lib/apt/lists/*
 
 # Installer les extensions PHP nécessaires.
-# Nous les installons une par une pour mieux isoler le problème si une échoue.
-RUN docker-php-ext-install pdo_pgsql
+# On installe mbstring en premier car c'est une dépendance très courante pour d'autres packages.
 RUN docker-php-ext-install mbstring
+RUN docker-php-ext-install pdo_pgsql
 RUN docker-php-ext-install exif
 RUN docker-php-ext-install pcntl
 RUN docker-php-ext-install bcmath
@@ -45,7 +44,7 @@ COPY . /var/www/html
 # Définir le répertoire de travail par défaut pour les commandes futures dans le conteneur.
 WORKDIR /var/www/html
 
-# Installer Composer si ce n'est pas déjà fait dans l'image de base (bonne pratique).
+# Installer Composer si ce n'est pas déjà fait dans l'image de base.
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # Installer les dépendances Composer de Laravel.
