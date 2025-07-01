@@ -2,7 +2,7 @@
 FROM php:8.2-apache
 
 # Installer les dépendances système nécessaires.
-# Ajoutez 'build-essential' pour les outils de compilation de base si ce n'est pas déjà là.
+# libonig-dev est une dépendance essentielle pour mbstring.
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -12,11 +12,12 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     build-essential \
+    libonig-dev \
     # Nettoie les fichiers de cache apt pour réduire la taille de l'image.
     && rm -rf /var/lib/apt/lists/*
 
 # Installer les extensions PHP nécessaires.
-# On installe mbstring en premier car c'est une dépendance très courante pour d'autres packages.
+# L'ordre a peu d'importance tant que les dépendances système sont là.
 RUN docker-php-ext-install mbstring
 RUN docker-php-ext-install pdo_pgsql
 RUN docker-php-ext-install exif
