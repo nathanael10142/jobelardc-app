@@ -46,7 +46,9 @@ WORKDIR /var/www/html
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
-RUN composer install --no-dev --optimize-autoloader
+
+# >>>>> C'EST ICI LA LIGNE MODIFIÉE : on a retiré --no-dev <<<<<
+RUN composer install --optimize-autoloader
 
 # Définir les permissions correctes
 RUN chown -R www-data:www-data storage bootstrap/cache
