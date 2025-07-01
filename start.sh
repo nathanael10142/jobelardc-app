@@ -11,8 +11,9 @@ if [ $? -ne 0 ]; then
 fi
 
 # Exécuter les seeders (pour les données initiales)
+# AJOUTER --force ICI
 echo "Running Laravel seeders..."
-php artisan db:seed
+php php artisan db:seed --force
 
 # Vérifier si les seeders ont réussi
 if [ $? -ne 0 ]; then
