@@ -22,9 +22,6 @@ RUN docker-php-ext-install exif
 RUN docker-php-ext-install pcntl
 RUN docker-php-ext-install bcmath
 RUN docker-php-ext-install opcache
-# Si vous avez besoin de GD pour la manipulation d'images, décommentez la ligne suivante
-# RUN docker-php-ext-configure gd --with-jpeg --with-freetype --with-webp
-# RUN docker-php-ext-install gd
 
 # Activer le module Apache 'rewrite' pour les belles URLs de Laravel.
 RUN a2enmod rewrite
@@ -41,7 +38,6 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 COPY . /var/www/html
 
 # Copier le script de démarrage et le rendre exécutable
-# CECI EST LA LIGNE IMPORTANTE À AJOUTER/VÉRIFIER
 COPY start.sh /var/www/html/start.sh
 RUN chmod +x /var/www/html/start.sh
 
