@@ -56,9 +56,18 @@ class CategorySeeder extends Seeder
         );
 
         // Crée 20 catégories factices supplémentaires
-        // Les factories génèrent généralement des données uniques, mais si vous exécutez
-        // ce seeder plusieurs fois sans vider la base de données, assurez-vous que
-        // la factory génère des noms/slugs uniques pour éviter les erreurs.
-        Category::factory(20)->create();
+        // Nous allons boucler et utiliser firstOrCreate pour chaque catégorie factice
+        // afin d'éviter les violations de contrainte unique si les noms générés par la factory
+        // ne sont pas toujours uniques ou si le seeder est exécuté plusieurs fois.
+        Category::factory(20)->make()->each(function ($category) {
+            Category::firstOrCreate(
+                ['name' => $category->name],
+                [
+                    'slug' => $category->slug,
+                    'description' => $category->description,
+                    'icon' => $category->icon, // Assurez-vous que l'icône est gérée si elle est nullable
+                ]
+            );
+        });
     }
 }
