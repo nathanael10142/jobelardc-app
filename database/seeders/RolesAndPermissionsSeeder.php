@@ -24,13 +24,13 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Permissions générales pour la gestion des utilisateurs
         Permission::firstOrCreate(['name' => 'manage users']); // Pour créer, modifier, supprimer des utilisateurs
-        Permission::firstOrCreate(['name' => 'view users']);   // Pour voir la liste des utilisateurs
+        Permission::firstOrCreate(['name' => 'view users']);    // Pour voir la liste des utilisateurs
 
         // Permissions pour la gestion des jobs/annonces
         Permission::firstOrCreate(['name' => 'create job']);    // Créer une annonce
         Permission::firstOrCreate(['name' => 'edit job']);      // Éditer une annonce (ses propres ou toutes)
         Permission::firstOrCreate(['name' => 'delete job']);    // Supprimer une annonce (ses propres ou toutes)
-        Permission::firstOrCreate(['name' => 'view job']);      // Voir les détails d'une annonce (la permission qui manquait !)
+        Permission::firstOrCreate(['name' => 'view job']);      // Voir les détails d'une annonce
         Permission::firstOrCreate(['name' => 'publish job']);   // Publier/dépublier une annonce (pour admin/modérateur)
         Permission::firstOrCreate(['name' => 'moderate jobs']); // Modérer le contenu des jobs (pour admin/modérateur)
 
@@ -43,11 +43,12 @@ class RolesAndPermissionsSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'manage categories']); // Pour créer, modifier, supprimer des catégories
 
         // Permissions pour la gestion des transactions/paiements
-        Permission::firstOrCreate(['name' => 'view transactions']);    // Voir les transactions
-        Permission::firstOrCreate(['name' => 'manage transactions']);  // Gérer les transactions (pour admin)
+        Permission::firstOrCreate(['name' => 'view transactions']);     // Voir les transactions
+        Permission::firstOrCreate(['name' => 'manage transactions']);   // Gérer les transactions (pour admin)
 
-        // Tu peux ajouter d'autres permissions au fur et à mesure que l'application grandit...
-        // Ex: 'view dashboard', 'manage settings', 'send notifications', 'boost job', etc.
+        // Nouvelles permissions ajoutées pour les chats et l'accès au panneau admin
+        Permission::firstOrCreate(['name' => 'manage chats']);
+        Permission::firstOrCreate(['name' => 'access admin panel']);
 
 
         // 2. Créer les Rôles et leur assigner des Permissions
@@ -70,8 +71,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'view job applications', // L'admin peut voir toutes les candidatures
             'view job', // L'admin doit pouvoir voir les détails de n'importe quel job
             'create job', // L'admin peut aussi créer des jobs (optionnel)
-            'edit job',   // L'admin peut éditer n'importe quel job (optionnel)
+            'edit job',    // L'admin peut éditer n'importe quel job (optionnel)
             'delete job', // L'admin peut supprimer n'importe quel job (optionnel)
+            'manage chats', // Ajout de la permission de gestion des chats
+            'access admin panel', // Ajout de la permission d'accès au panneau admin
         ]);
 
         // Rôle Modérateur (peut modérer les jobs)
@@ -82,6 +85,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view transactions',
             'view job', // Le modérateur doit pouvoir voir les jobs
             'view job applications', // Le modérateur peut voir les candidatures pour les jobs modérés
+            'manage chats', // Ajout de la permission de gestion des chats
         ]);
 
         // Rôle Candidat (chercheur d'emploi)
@@ -90,11 +94,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'view job',             // Peut voir toutes les annonces
             'apply for job',        // Peut postuler à un job
             'view own applications',// Peut voir ses propres candidatures
+            'manage chats', // Ajout de la permission de gestion des chats
             // Les permissions 'edit job' et 'delete job' ici sont risquées si elles désignent n'importe quel job.
             // Elles sont probablement destinées à l'édition/suppression de leur PROPRE profil.
             // La logique pour éditer/supprimer son PROPRE job ou profil sera gérée par Laravel Policies ou Gates,
             // en plus de la permission 'edit job'. Pour l'instant, on les garde comme tu les avais mis.
-            'edit job',   // Pour éditer son profil ou ses candidatures.
+            'edit job',    // Pour éditer son profil ou ses candidatures.
             'delete job', // Pour supprimer son profil ou ses candidatures.
         ]);
 
@@ -107,6 +112,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view job applications',// Peut voir les candidatures à ses jobs
             'view users',           // Peut voir les profils des candidats (ceux qui ont postulé par ex.)
             'view job',             // Peut voir n'importe quelle annonce
+            'manage chats', // Ajout de la permission de gestion des chats
         ]);
 
         // Rôle Utilisateur Standard (fallback ou rôle générique si tu ne distingues pas encore employeur/candidat à l'inscription)
@@ -120,25 +126,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'create job',
             'edit job',
             'delete job',
+            'manage chats', // Ajout de la permission de gestion des chats
         ]);
 
-        // Créer l'utilisateur super_admin par défaut si tu ne le fais pas dans DatabaseSeeder.php
-        // (Il est mieux de le faire dans DatabaseSeeder qui appelle ce seeder)
-        // Cependant, pour être complet ici si jamais tu lançais ce seeder seul:
-        // if (\App\Models\User::where('email', 'nathanaelhacker6@gmail.com')->doesntExist()) {
-        //     $user = \App\Models\User::create(
-        //         [
-        //             'name' => 'Nathanael Hacker',
-        //             'email' => 'nathanaelhacker6@gmail.com',
-        //             'password' => Hash::make('nathanael1209ba'),
-        //             'email_verified_at' => now(),
-        //             'user_type' => 'both', // Correspond à ta colonne user_type
-        //             'location' => 'Goma',
-        //             'phone_number' => '0891234567',
-        //             'bio' => 'Super administrateur de Jobela RDC.',
-        //         ]
-        //     );
-        //     $user->assignRole('super_admin');
-        // }
+        // La création de l'utilisateur super_admin par défaut est maintenant gérée dans DatabaseSeeder.php
+        // Il est préférable de ne pas la dupliquer ici.
     }
 }
