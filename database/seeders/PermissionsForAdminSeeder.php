@@ -18,27 +18,47 @@ class PermissionsForAdminSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // --- 1. Créer les permissions nécessaires si elles n'existent pas ---
-        // Permission pour le PermissionController
+        // Utilise firstOrCreate pour éviter les doublons lors des exécutions multiples
         Permission::firstOrCreate(['name' => 'manage permissions']);
-        // Permission pour le RoleController
         Permission::firstOrCreate(['name' => 'manage roles']);
+        // Ajoutez ici toutes les autres permissions que vous avez définies dans RolesAndPermissionsSeeder
+        // pour vous assurer qu'elles existent avant d'être attribuées.
+        // Par exemple:
+        Permission::firstOrCreate(['name' => 'manage users']);
+        Permission::firstOrCreate(['name' => 'view users']);
+        Permission::firstOrCreate(['name' => 'edit users']);
+        Permission::firstOrCreate(['name' => 'delete users']);
+        Permission::firstOrCreate(['name' => 'create job listings']);
+        Permission::firstOrCreate(['name' => 'edit job listings']);
+        Permission::firstOrCreate(['name' => 'delete job listings']);
+        Permission::firstOrCreate(['name' => 'view job listings']);
+        Permission::firstOrCreate(['name' => 'apply for jobs']);
+        Permission::firstOrCreate(['name' => 'manage applications']);
+        Permission::firstOrCreate(['name' => 'manage chats']);
+        Permission::firstOrCreate(['name' => 'access admin panel']);
 
-        // --- 2. Trouver ou créer un rôle "Admin" ---
-        // C'est une bonne pratique d'avoir un rôle générique pour les admins
-        $adminRole = Role::firstOrCreate(['name' => 'super_admin']);
 
-        // --- 3. Assigner les permissions spécifiques au rôle "Admin" ---
-        $adminRole->givePermissionTo('manage permissions');
-        $adminRole->givePermissionTo('manage roles');
+        // --- 2. Trouver ou créer un rôle "super_admin" ---
+        // C'est le rôle qui aura les permissions d'administration
+        $superAdminRole = Role::firstOrCreate(['name' => 'super_admin']);
 
-        // --- 4. Assigner le rôle "Admin" à l'utilisateur spécifique ---
+        // --- 3. Assigner les permissions spécifiques au rôle "super_admin" ---
+        // Donnez toutes les permissions au rôle super_admin, comme dans RolesAndPermissionsSeeder
+        $superAdminRole->givePermissionTo(Permission::all());
+
+        // --- 4. Assigner le rôle "super_admin" à l'utilisateur spécifique ---
         // L'email de l'utilisateur à qui assigner le rôle admin
         $targetEmail = 'nathanaelhacker6@gmail.com';
         $user = User::where('email', $targetEmail)->first();
 
         if ($user) {
-            $user->assignRole($adminRole);
-            $this->command->info("L'utilisateur {$user->email} a été assigné au rôle '{$adminRole->name}'.");
+            // Assurez-vous que l'utilisateur a bien le rôle 'super_admin'
+            if (!$user->hasRole('super_admin')) {
+                $user->assignRole($superAdminRole);
+                $this->command->info("L'utilisateur {$user->email} a été assigné au rôle '{$superAdminRole->name}'.");
+            } else {
+                $this->command->info("L'utilisateur {$user->email} a déjà le rôle '{$superAdminRole->name}'.");
+            }
         } else {
             $this->command->warn("Utilisateur avec l'email '{$targetEmail}' non trouvé. Assurez-vous que cet utilisateur existe dans votre base de données.");
         }
