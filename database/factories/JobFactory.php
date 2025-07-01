@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\User;
-use App\Models\Category;
+use App\Models\Category; // Ensure Category model is imported
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class JobFactory extends Factory
@@ -16,8 +16,14 @@ class JobFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => User::factory(), // Crée un utilisateur si aucun n'est fourni
-            'category_id' => Category::factory(), // Crée une catégorie si aucune n'est fournie
+            // Assign an existing user, or create one if no users exist.
+            // It's better to ensure users are seeded before jobs.
+            'user_id' => User::inRandomOrder()->first()->id ?? User::factory(),
+
+            // Assign an existing category. This is the key change to prevent duplicates.
+            // We ensure categories are seeded before jobs.
+            'category_id' => Category::inRandomOrder()->first()->id ?? Category::factory(),
+
             'title' => $this->faker->sentence(3),
             'description' => $this->faker->paragraph(),
             'price' => $this->faker->randomFloat(2, 5, 500), // Prix entre 5 et 500
