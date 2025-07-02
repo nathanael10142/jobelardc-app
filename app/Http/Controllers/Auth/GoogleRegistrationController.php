@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\RegisterController; // Assurez-vous que ce chemin est correct si RegisterController n'est pas dans le même namespace
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -72,15 +72,15 @@ class GoogleRegistrationController extends Controller
         }
 
         $user = User::create([
-            'name'            => $googleUserData['name'],
-            'email'           => $googleUserData['email'],
-            'google_id'       => $googleUserData['google_id'],
-            'password'        => Hash::make(uniqid()),
-            'phone_number'    => $request->input('phone_number'),
-            'bio'             => $request->input('bio'),
+            'name'          => $googleUserData['name'],
+            'email'         => $googleUserData['email'],
+            'google_id'     => $googleUserData['google_id'],
+            'password'      => Hash::make(uniqid()), // Mot de passe aléatoire car connexion via Google
+            'phone_number'  => $request->input('phone_number'),
+            'bio'           => $request->input('bio'),
             'profile_picture' => $googleUserData['avatar'] ?? null,
-            'location'        => $request->input('city') . ', ' . $request->input('province'),
-            'user_type'       => $request->input('user_type'),
+            'location'      => $request->input('city') . ', ' . $request->input('province'),
+            'user_type'     => $request->input('user_type'),
         ]);
 
         $role = Role::where('name', $request->input('user_type'))->first();
@@ -94,20 +94,18 @@ class GoogleRegistrationController extends Controller
         Auth::login($user, true);
         session()->forget('google_user_data');
 
-        // Redirection dynamique selon le rôle
-        if ($user->hasRole('candidate')) {
-            return redirect()->route('candidate.dashboard');
-        }
-
-        if ($user->hasRole('employer')) {
-            return redirect()->route('employer.dashboard');
-        }
-
-        if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
+        // --- SECTION DE REDIRECTION MISE À JOUR POUR ÊTRE IDENTIQUE AU LOGINCONTROLLER ---
+        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         }
 
+        if ($user->hasAnyRole(['employer', 'candidate'])) {
+            // Redirection vers la page liste des annonces au lieu du dashboard candidat/employeur
+            return redirect()->route('listings.index');
+        }
+
         return redirect('/dashboard');
+        // --- FIN DE LA SECTION DE REDIRECTION MISE À JOUR ---
     }
 
     /**
