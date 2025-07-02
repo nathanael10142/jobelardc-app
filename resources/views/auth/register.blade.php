@@ -200,7 +200,10 @@
 
             try {
                 // Utilisez la route nommée de Laravel pour une URL robuste
-                const response = await fetch(`{{ route('get.cities.by.province') }}?province=${encodeURIComponent(selectedProvince)}`, {
+                // C'est la modification clé pour résoudre l'erreur de "Mixed Content"
+                const url = "{{ route('get.cities.by.province') }}?province=" + encodeURIComponent(selectedProvince);
+
+                const response = await fetch(url, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
