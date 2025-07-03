@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Générer la clé d'application si elle n'existe pas (important pour la première exécution)
+# La clé sera lue depuis les variables d'environnement de Render si définie,
+# sinon elle sera générée dans le .env du conteneur.
+echo "Generating Laravel application key if not set..."
+php artisan key:generate --force
+
+# Vérifier si la génération de clé a réussi
+if [ $? -ne 0 ]; then
+    echo "Key generation failed! Exiting."
+    exit 1
+fi
+
 # Drop all tables, run migrations, and then run seeders
 echo "Running Laravel migrations and seeders from a fresh database..."
 # Utilise migrate:fresh --seed --force pour une réinitialisation complète de la base de données
