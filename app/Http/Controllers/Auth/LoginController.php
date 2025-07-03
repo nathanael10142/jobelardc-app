@@ -12,27 +12,36 @@ class LoginController extends Controller
 {
     use AuthenticatesUsers;
 
-    protected $redirectTo;
+    // Supprimez la propriété $redirectTo si elle est vide ou non utilisée,
+    // car la méthode redirectTo() la remplacera.
+    // protected $redirectTo; // Vous pouvez commenter ou supprimer cette ligne
 
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
     }
 
+    /**
+     * Get the post-login redirect path.
+     * This method ensures users are redirected to their appropriate dashboard after login.
+     *
+     * @return string
+     */
     protected function redirectTo()
     {
         $user = auth()->user();
 
         if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
-            return route('admin.dashboard');
+            return route('admin.dashboard'); // Redirection pour les admins
         }
 
         if ($user->hasAnyRole(['employer', 'candidate'])) {
-            // Redirection vers la page liste des annonces au lieu du dashboard candidat
+            // Redirection vers la page liste des annonces pour employeurs/candidats
             return route('listings.index');
         }
 
-        return '/dashboard';
+        // MODIFICATION ICI : Redirection par défaut vers la route nommée 'home' (qui est '/')
+        return route('home'); // Ceci générera l'URL correcte pour la route nommée 'home' (qui est '/')
     }
 
     public function redirectToGoogle()
@@ -52,6 +61,7 @@ class LoginController extends Controller
 
         if ($authUser) {
             Auth::login($authUser, true);
+            // Utilisez la méthode redirectTo() du contrôleur pour la cohérence
             return redirect($this->redirectTo());
         }
 
