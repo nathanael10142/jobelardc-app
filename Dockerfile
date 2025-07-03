@@ -48,14 +48,16 @@ WORKDIR /var/www/html
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # >>>>> NOUVELLES LIGNES AJOUTÉES POUR PRÉPARER L'ENVIRONNEMENT AVANT COMPOSER INSTALL <<<<<
-# Copier .env.example vers .env et générer une APP_KEY
+# Copier .env.example vers .env
 # Cela garantit que Laravel a un environnement de base configuré pendant l'installation des dépendances.
 RUN cp .env.example .env
-RUN php artisan key:generate
 
 # AJOUTEZ LA VARIABLE D'ENVIRONNEMENT AVANT LA COMMANDE COMPOSER INSTALL
 # Cela permet à Composer d'exécuter les plugins même lorsqu'il est exécuté en tant que root.
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --optimize-autoloader
+
+# >>>>> LA LIGNE php artisan key:generate EST MAINTENANT APRÈS composer install <<<<<
+RUN php artisan key:generate
 
 # Définir les permissions correctes
 RUN chown -R www-data:www-data storage bootstrap/cache
