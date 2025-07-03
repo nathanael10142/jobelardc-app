@@ -48,7 +48,9 @@ WORKDIR /var/www/html
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 # >>>>> C'EST ICI LA LIGNE MODIFIÉE : on a retiré --no-dev <<<<<
-RUN composer install --optimize-autoloader
+# AJOUTEZ LA VARIABLE D'ENVIRONNEMENT AVANT LA COMMANDE COMPOSER INSTALL
+# Cela permet à Composer d'exécuter les plugins même lorsqu'il est exécuté en tant que root.
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --optimize-autoloader
 
 # Définir les permissions correctes
 RUN chown -R www-data:www-data storage bootstrap/cache
