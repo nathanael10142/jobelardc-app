@@ -47,7 +47,12 @@ WORKDIR /var/www/html
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
-# >>>>> C'EST ICI LA LIGNE MODIFIÉE : on a retiré --no-dev <<<<<
+# >>>>> NOUVELLES LIGNES AJOUTÉES POUR PRÉPARER L'ENVIRONNEMENT AVANT COMPOSER INSTALL <<<<<
+# Copier .env.example vers .env et générer une APP_KEY
+# Cela garantit que Laravel a un environnement de base configuré pendant l'installation des dépendances.
+RUN cp .env.example .env
+RUN php artisan key:generate
+
 # AJOUTEZ LA VARIABLE D'ENVIRONNEMENT AVANT LA COMMANDE COMPOSER INSTALL
 # Cela permet à Composer d'exécuter les plugins même lorsqu'il est exécuté en tant que root.
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --optimize-autoloader
