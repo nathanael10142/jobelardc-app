@@ -9,20 +9,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Http\Request; // Import the Request class
-use Illuminate\Support\Facades\Auth; // Import Auth facade
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class RegisterController extends Controller
 {
     use RegistersUsers;
-
-    /**
-     * Where to redirect users after registration.
-     * We'll use a dynamic redirectTo() method instead of a static property.
-     *
-     * @var string
-     */
-    // protected $redirectTo = '/dashboard'; // Comment or remove this line
 
     /**
      * Create a new controller instance.
@@ -49,14 +42,17 @@ class RegisterController extends Controller
             return route('admin.dashboard'); // Assuming you have this named route
         }
 
-        // For 'candidate' and 'employer', redirect to 'candidates.dashboard'
+        // For 'candidate' and 'employer', redirect to 'listings.index'
         if ($user->hasRole('candidate') || $user->hasRole('employer')) {
-            return route('listings.index'); // Ensure this route exists and is named 'candidates.dashboard'
+            return route('listings.index'); // Ensure this route exists and is named 'listings.index'
         }
 
         // Default redirection if no specific role is found
-        return '/home'; // Or any other default route
+        // MODIFICATION ICI : Utiliser route('home') au lieu de '/home'
+        return route('home'); // Ceci générera l'URL correcte pour la route nommée 'home' (qui est '/')
     }
+
+    // ... (le reste de votre contrôleur reste inchangé) ...
 
     /**
      * Provides the centralized list of provinces and their associated cities.
@@ -103,8 +99,8 @@ class RegisterController extends Controller
      */
     public function showRegistrationForm()
     {
-        $provincesVilles = self::getProvincesAndCitiesData(); // Use self:: to call the static method
-        $provinces = array_keys($provincesVilles); // Get only province names (keys)
+        $provincesVilles = self::getProvincesAndCitiesData();
+        $provinces = array_keys($provincesVilles);
 
         return view('auth.register', compact('provinces'));
     }
@@ -119,9 +115,8 @@ class RegisterController extends Controller
     public function getCitiesByProvince(Request $request)
     {
         $provinceName = $request->input('province');
-        $provincesVilles = self::getProvincesAndCitiesData(); // Use self::
+        $provincesVilles = self::getProvincesAndCitiesData();
 
-        // Return cities for the requested province, or an empty array if not found.
         $cities = $provincesVilles[$provinceName] ?? [];
 
         return response()->json($cities);
@@ -135,7 +130,7 @@ class RegisterController extends Controller
      */
     protected function validator(array $data)
     {
-        $provincesVilles = self::getProvincesAndCitiesData(); // Use self::
+        $provincesVilles = self::getProvincesAndCitiesData();
         $allProvinces = array_keys($provincesVilles);
 
         return Validator::make($data, [
@@ -149,7 +144,6 @@ class RegisterController extends Controller
                 'max:255',
                 function ($attribute, $value, $fail) use ($data, $provincesVilles) {
                     $selectedProvince = $data['province'];
-                    // Check if the province exists and if the city is in that province's list
                     if (!isset($provincesVilles[$selectedProvince]) || !in_array($value, $provincesVilles[$selectedProvince])) {
                         $fail("La ville sélectionnée n'est pas valide pour la province choisie.");
                     }
@@ -192,12 +186,12 @@ class RegisterController extends Controller
         if ($assignedRole) {
             $user->assignRole($assignedRole);
         } else {
-            \Log::warning('Le rôle "' . $roleName . '" n\'a pas été trouvé. Tentative d\'assignation du rôle "user" par défaut.');
+            Log::warning('Le rôle "' . $roleName . '" n\'a pas été trouvé. Tentative d\'assignation du rôle "user" par défaut.');
             $fallbackRole = Role::where('name', 'user')->first();
             if ($fallbackRole) {
                 $user->assignRole($fallbackRole);
             } else {
-                \Log::error('Le rôle "user" par défaut n\'a pas été trouvé. Veuillez vous assurer que les rôles sont configurés dans votre application.');
+                Log::error('Le rôle "user" par défaut n\'a pas été trouvé. Veuillez vous assurer que les rôles sont configurés dans votre application.');
             }
         }
 

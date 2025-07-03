@@ -19,4 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
-    })->create();
+    })
+    // AJOUT DE LA SECTION withProviders POUR ENREGISTRER LE RouteServiceProvider
+    ->withProviders([
+        App\Providers\RouteServiceProvider::class, // Enregistre votre RouteServiceProvider
+        // Ajoutez ici d'autres Service Providers si nécessaire, par exemple :
+        // \Spatie\Permission\PermissionServiceProvider::class,
+    ])
+    ->create();
+
