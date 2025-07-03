@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Support\Facades\Log; // Ajouté pour la cohérence avec RegisterController
 
 class GoogleRegistrationController extends Controller
 {
@@ -87,14 +88,15 @@ class GoogleRegistrationController extends Controller
         if ($role) {
             $user->assignRole($role);
         } else {
-            \Log::warning("Rôle introuvable pour {$user->email} : {$request->input('user_type')}");
+            // Utiliser Log::warning pour la cohérence
+            Log::warning("Rôle introuvable pour {$user->email} : {$request->input('user_type')}");
         }
 
         event(new Registered($user));
         Auth::login($user, true);
         session()->forget('google_user_data');
 
-        // --- SECTION DE REDIRECTION MISE À JOUR POUR ÊTRE IDENTIQUE AU LOGINCONTROLLER ---
+        // --- SECTION DE REDIRECTION MISE À JOUR POUR ÊTRE IDENTIQUE AU REGISTERCONTROLLER ---
         if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         }
@@ -104,7 +106,8 @@ class GoogleRegistrationController extends Controller
             return redirect()->route('listings.index');
         }
 
-        return redirect('/dashboard');
+        // MODIFICATION ICI : Utiliser route('home') au lieu de '/dashboard'
+        return redirect()->route('home'); // Ceci redirigera vers la route nommée 'home' (qui est '/')
         // --- FIN DE LA SECTION DE REDIRECTION MISE À JOUR ---
     }
 
