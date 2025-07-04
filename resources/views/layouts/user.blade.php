@@ -12,13 +12,13 @@
     {{-- Fonts: Nunito est un bon choix pour sa lisibilité, proche de l'esprit WhatsApp --}}
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800&display=swap" rel="stylesheet">
-    <link href="{{ asset('css/user.css') }}" rel="stylesheet">
+    {{-- <link href="{{ asset('css/user.css') }}" rel="stylesheet"> --}} {{-- Commenté car non fourni, assurez-vous qu'il existe ou retirez-le --}}
 
     {{-- Bootstrap 5.3.3 CSS (via CDN) - Base de la grille et des composants --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
     {{-- Font Awesome 6.5.2 (via CDN) - Indispensable pour les icônes WhatsApp --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     {{-- Section pour les styles spécifiques à la page --}}
     @stack('styles')
@@ -48,6 +48,7 @@
                                 </a>
                             </li>
                         @endif
+
                         @if (Route::has('register'))
                             <li class="nav-item d-md-none"> {{-- Visible seulement sur mobile --}}
                                 <a class="nav-link" href="{{ route('register') }}" title="{{ __('S\'inscrire') }}">
@@ -66,7 +67,7 @@
 
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 {{-- Liens spécifiques utilisateur --}}
-                                <a class="dropdown-item" href="{{ route('profile.show') }}"> {{-- Assumed route for profile --}}
+                                <a class="dropdown-item" href="{{ route('profile.index') }}"> {{-- CORRECTED: Changed 'profile.show' to 'profile.index' --}}
                                     <i class="fas fa-user me-2"></i> {{ __('Mon Profil') }}
                                 </a>
                                 {{-- Nouvelle entrée pour les Annonces du Marché --}}
@@ -76,7 +77,7 @@
                                 <a class="dropdown-item" href="{{ route('applications.index') }}"> {{-- Assumed route for applications --}}
                                     <i class="fas fa-file-alt me-2"></i> {{ __('Mes Demandes/Offres') }}
                                 </a>
-                              
+
                                 <a class="dropdown-item" href="{{ route('groups.index') }}"> {{-- Assumed route for groups --}}
                                     <i class="fas fa-users me-2"></i> {{ __('Groupes de discussion') }}
                                 </a>
@@ -122,7 +123,7 @@
     </div>
 
     {{-- Scripts --}}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDxOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
