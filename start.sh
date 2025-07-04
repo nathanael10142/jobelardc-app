@@ -45,31 +45,20 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# NOUVEAU: Définir les permissions pour les répertoires de stockage et de cache
-# Cela permet au serveur web d'écrire dans ces répertoires.
+# Définir les permissions pour les répertoires de stockage et de cache
 echo "Setting permissions for storage and bootstrap/cache directories..."
-
-# --- COMMANDES DE DÉBOGAGE AJOUTÉES ---
-echo "--- Before permissions change ---"
-echo "Current user: $(whoami)"
-ls -la storage bootstrap/cache
-id www-data || echo "www-data user not found or id command failed" # Vérifie si www-data existe
-# --- FIN COMMANDES DE DÉBOGAGE ---
-
-# TEMPORAIREMENT CHMOD 777 POUR LE DÉBOGAGE DES PERMISSIONS
 chmod -R 777 storage bootstrap/cache
-# Changer le propriétaire des répertoires pour l'utilisateur Apache (www-data)
 chown -R www-data:www-data storage bootstrap/cache 
 if [ $? -ne 0 ]; then
     echo "Setting ownership failed! Exiting."
     exit 1
 fi
 
-# --- COMMANDES DE DÉBOGAGE APRÈS CHANGEMENT DE PERMISSIONS ---
-echo "--- After permissions change ---"
-ls -la storage bootstrap/cache
-# --- FIN COMMANDES DE DÉBOGAGE ---
-
+# NOUVEAU: Nettoyer le cache de configuration et d'application juste avant de démarrer le queue worker
+# Ceci est crucial pour s'assurer que le worker utilise la configuration la plus récente de la base de données.
+echo "Clearing config and application cache specifically for the queue worker..."
+php artisan config:clear
+php artisan cache:clear
 
 # Démarrer le queue worker en arrière-plan
 echo "Starting Laravel queue worker in background..."
