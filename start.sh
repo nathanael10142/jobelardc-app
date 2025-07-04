@@ -48,17 +48,27 @@ fi
 # Définir les permissions pour les répertoires de stockage et de cache
 echo "Setting permissions for storage and bootstrap/cache directories..."
 chmod -R 777 storage bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache 
+chown -R www-data:www-data storage bootstrap/cache
 if [ $? -ne 0 ]; then
     echo "Setting ownership failed! Exiting."
     exit 1
 fi
 
-# NOUVEAU: Nettoyer le cache de configuration et d'application juste avant de démarrer le queue worker
-# Ceci est crucial pour s'assurer que le worker utilise la configuration la plus récente de la base de données.
+# Nettoyer le cache de configuration et d'application juste avant de démarrer le queue worker
 echo "Clearing config and application cache specifically for the queue worker..."
 php artisan config:clear
 php artisan cache:clear
+
+# NOUVEAU: Commande de débogage pour vérifier la structure de la table 'jobs'
+echo "--- Checking 'jobs' table schema before starting queue worker ---"
+# Cette commande tentera d'afficher le schéma de la table 'jobs'.
+# Si 'db:table' n'est pas disponible, elle affichera un message d'erreur.
+php artisan db:table jobs --dump-schema || echo "Command 'php artisan db:table jobs --dump-schema' failed. Trying alternative schema check..."
+# Alternative: Si db:table ne fonctionne pas, vous pouvez décommenter la ligne suivante
+# pour tenter une requête SQL directe (nécessite 'psql' d'être installé dans l'image Docker)
+# psql -d $DB_DATABASE -U $DB_USERNAME -h $DB_HOST -p $DB_PORT -c "\d jobs" || echo "psql command failed. Check if psql is installed and DB credentials are correct."
+echo "--- End of 'jobs' table schema check ---"
+
 
 # Démarrer le queue worker en arrière-plan
 echo "Starting Laravel queue worker in background..."
