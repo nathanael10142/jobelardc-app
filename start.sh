@@ -12,6 +12,16 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# MODIFICATION ICI : Forcer la reconstruction de l'autochargement Composer
+echo "Dumping Composer autoload files..."
+COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload
+
+# Vérifier si dump-autoload a réussi
+if [ $? -ne 0 ]; then
+    echo "Composer dump-autoload failed! Exiting."
+    exit 1
+fi
+
 # Drop all tables, run migrations, and then run seeders
 echo "Running Laravel migrations and seeders from a fresh database..."
 # Utilise migrate:fresh --seed --force pour une réinitialisation complète de la base de données
