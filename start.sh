@@ -61,12 +61,10 @@ php artisan cache:clear
 
 # NOUVEAU: Commande de débogage pour vérifier la structure de la table 'jobs'
 echo "--- Checking 'jobs' table schema before starting queue worker ---"
-# Cette commande tentera d'afficher le schéma de la table 'jobs'.
-# Si 'db:table' n'est pas disponible, elle affichera un message d'erreur.
-php artisan db:table jobs --dump-schema || echo "Command 'php artisan db:table jobs --dump-schema' failed. Trying alternative schema check..."
-# Alternative: Si db:table ne fonctionne pas, vous pouvez décommenter la ligne suivante
-# pour tenter une requête SQL directe (nécessite 'psql' d'être installé dans l'image Docker)
-# psql -d $DB_DATABASE -U $DB_USERNAME -h $DB_HOST -p $DB_PORT -c "\d jobs" || echo "psql command failed. Check if psql is installed and DB credentials are correct."
+# Cette commande tentait d'afficher le schéma de la table 'jobs', mais l'option --dump-schema n'existe pas.
+# Nous la commentons pour éviter l'erreur.
+# php artisan db:table jobs --dump-schema || echo "Command 'php artisan db:table jobs --dump-schema' failed. Trying alternative schema check..."
+# Si tu veux vérifier le schéma, il est préférable de te connecter à la DB ou d'utiliser un outil qui supporte cela.
 echo "--- End of 'jobs' table schema check ---"
 
 
