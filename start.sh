@@ -59,6 +59,14 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# NOUVEAU: Démarrer le queue worker en arrière-plan
+# Le --daemon permet au worker de continuer à s'exécuter en arrière-plan.
+# --tries=3 tente de traiter une tâche 3 fois avant de la marquer comme échouée.
+# Le "&" à la fin est CRUCIAL pour que la commande s'exécute en arrière-plan
+# et que le script puisse continuer à démarrer le serveur web.
+echo "Starting Laravel queue worker in background..."
+php artisan queue:work --daemon --tries=3 &
+
 # Démarrer le serveur Apache
 echo "Starting Apache..."
 apache2-foreground

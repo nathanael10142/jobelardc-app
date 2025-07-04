@@ -2,30 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Call;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use App\Models\Call;
+use App\Events\CallInitiated; // Réactivé
+use App\Events\CallAccepted;  // Réactivé
+use App\Events\CallRejected;  // Réactivé
+use App\Events\CallEnded;     // Réactivé
 use Illuminate\Support\Facades\Log;
-// use App\Events\CallInitiated; // Commenté temporairement
-// use App\Events\CallAccepted; // Commenté temporairement
-// use App\Events\CallRejected; // Commenté temporairement
-// use App\Events\CallEnded; // Commenté temporairement
 
 class CallController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:sanctum')->only(['initiate', 'accept', 'reject', 'end']); // Appliquer pour les API
-        $this->middleware('auth')->only(['index']); // Appliquer pour la vue web
+        $this->middleware('auth:sanctum')->only(['initiate', 'accept', 'reject', 'end']);
+        $this->middleware('auth')->only(['index']);
     }
 
-    /**
-     * Affiche l'historique des appels de l'utilisateur authentifié.
-     *
-     * @param Request $request
-     * @return \Illuminate\View\View
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -58,12 +52,6 @@ class CallController extends Controller
         return view('calls.index', compact('calls'));
     }
 
-    /**
-     * Gère l'initiation d'un nouvel appel.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function initiate(Request $request)
     {
         $request->validate([
@@ -95,11 +83,11 @@ class CallController extends Controller
                 'status' => 'initiated',
             ]);
 
-            // TEMPORAIREMENT COMMENTÉ POUR LE DÉBOGAGE DE L'ERREUR "queue"
-            // event(new CallInitiated($callId, $caller, $receiver, $request->call_type));
+            // ÉVÉNEMENT DE DIFFUSION RÉACTIVÉ
+            event(new CallInitiated($callId, $caller, $receiver, $request->call_type));
 
             return response()->json([
-                'message' => 'Appel initié avec succès. (Événement de diffusion désactivé pour le test)',
+                'message' => 'Appel initié avec succès.',
                 'call_id' => $call->call_id,
                 'caller' => $caller->only(['id', 'name', 'profile_picture']),
                 'receiver' => $receiver->only(['id', 'name', 'profile_picture']),
@@ -107,17 +95,11 @@ class CallController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error("Erreur lors de l'initiation de l'appel (sans événement): " . $e->getMessage(), ['exception' => $e]);
+            Log::error("Erreur lors de l'initiation de l'appel: " . $e->getMessage(), ['exception' => $e]);
             return response()->json(['message' => 'Erreur lors de l\'initiation de l\'appel. Veuillez réessayer.', 'error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Gère l'acceptation d'un appel.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function accept(Request $request)
     {
         $request->validate([
@@ -150,18 +132,12 @@ class CallController extends Controller
 
         Log::info("Appel accepté: Call ID {$request->call_id}, Receiver ID {$receiver->id}, Caller ID {$caller->id}");
 
-        // TEMPORAIREMENT COMMENTÉ POUR LE DÉBOGAGE DE L'ERREUR "queue"
-        // event(new CallAccepted($request->call_id, $caller, $receiver));
+        // ÉVÉNEMENT DE DIFFUSION RÉACTIVÉ
+        event(new CallAccepted($request->call_id, $caller, $receiver));
 
         return response()->json(['message' => 'Appel accepté.'], 200);
     }
 
-    /**
-     * Gère le rejet d'un appel.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function reject(Request $request)
     {
         $request->validate([
@@ -194,18 +170,12 @@ class CallController extends Controller
 
         Log::info("Appel rejeté: Call ID {$request->call_id}, Receiver ID {$receiver->id}, Caller ID {$caller->id}");
 
-        // TEMPORAIREMENT COMMENTÉ POUR LE DÉBOGAGE DE L'ERREUR "queue"
-        // event(new CallRejected($request->call_id, $caller, $receiver));
+        // ÉVÉNEMENT DE DIFFUSION RÉACTIVÉ
+        event(new CallRejected($request->call_id, $caller, $receiver));
 
         return response()->json(['message' => 'Appel rejeté.'], 200);
     }
 
-    /**
-     * Termine un appel en cours.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function end(Request $request)
     {
         $request->validate([
@@ -251,8 +221,8 @@ class CallController extends Controller
 
         Log::info("Appel terminé: Call ID {$request->call_id}, Ender ID {$ender->id}, Other Participant ID {$otherParticipant->id}");
 
-        // TEMPORAIREMENT COMMENTÉ POUR LE DÉBOGAGE DE L'ERREUR "queue"
-        // event(new CallEnded($request->call_id, $ender, $otherParticipant));
+        // ÉVÉNEMENT DE DIFFUSION RÉACTIVÉ
+        event(new CallEnded($request->call_id, $ender, $otherParticipant));
 
         return response()->json(['message' => 'Appel terminé.'], 200);
     }
