@@ -63,7 +63,8 @@
                     <div class="row mt-3 text-center">
                         <div class="col-md-8 offset-md-2">
                             <p class="mb-2">Ou connectez-vous avec :</p>
-                            <a href="{{ route('auth.google') }}" class="btn btn-danger btn-lg" style="background-color: #DB4437; border-color: #DB4437; color: white; border-radius: 25px; padding: 10px 20px;">
+                            {{-- MODIFICATION ICI : Correction du nom de route de 'auth.google' à 'google.auth' --}}
+                            <a href="{{ route('google.auth') }}" class="btn btn-danger btn-lg" style="background-color: #DB4437; border-color: #DB4437; color: white; border-radius: 25px; padding: 10px 20px;">
                                 <i class="fab fa-google me-2"></i> {{ __('Google') }}
                             </a>
                         </div>
