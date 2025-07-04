@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Providers; // Cette ligne est cruciale et doit être présente !
+namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Event; // Assurez-vous que Event est importé si vous l'utilisez
-use Illuminate\Auth\Events\Registered; // Exemple d'événement
-use App\Listeners\SendEmailVerificationNotification; // Exemple de listener
+use Illuminate\Support\Facades\Event;
+use Illuminate\Auth\Events\Registered;
+// use App\Listeners\SendEmailVerificationNotification; // Vous pouvez commenter ou supprimer cette ligne
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -16,7 +16,7 @@ class EventServiceProvider extends ServiceProvider
      */
     protected $listen = [
         Registered::class => [
-            SendEmailVerificationNotification::class, // Exemple de listener pour l'événement Registered
+            // SendEmailVerificationNotification::class, // Cette ligne a été supprimée/commentée pour désactiver l'envoi de l'e-mail de vérification
         ],
         // Ajoutez vos événements et listeners personnalisés ici
         \App\Events\CallInitiated::class => [
