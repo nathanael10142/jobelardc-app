@@ -71,7 +71,21 @@
                                     $avatarHtml = '<img src="' . $avatarSrc . '" alt="Photo de profil de ' . $contact->name . '" class="avatar-thumbnail">';
                                 } else {
                                     // Fallback to initials avatar if no profile picture
-                                    $avatarHtml = '<div class="avatar-text-placeholder" style="background-color: ' . ($contact->avatar_bg_color ?? '#777') . ';">' . ($contact->initials ?? '??') . '</div>';
+                                    $initials = '';
+                                    if ($contact->name) {
+                                        $words = explode(' ', $contact->name);
+                                        foreach ($words as $word) {
+                                            $initials .= strtoupper(substr($word, 0, 1));
+                                        }
+                                        if (strlen($initials) > 2) {
+                                            $initials = substr($initials, 0, 2);
+                                        }
+                                    } else {
+                                        $initials = '??';
+                                    }
+                                    // Générer une couleur cohérente basée sur l'email ou l'ID de l'utilisateur
+                                    $bgColor = '#' . substr(md5($contact->email ?? $contact->id ?? uniqid()), 0, 6);
+                                    $avatarHtml = '<div class="avatar-text-placeholder" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
                                 }
                             } else {
                                 // Fallback for anonymous or deleted user
@@ -136,12 +150,7 @@
                         <label for="contactSelect" class="form-label">Sélectionner un contact:</label>
                         <select class="form-select" id="contactSelect" name="receiver_id">
                             <option value="">Chargement des contacts...</option>
-                            {{-- Les options seront chargées via JS ou passées par le contrôleur --}}
-                            {{-- Exemple si passé par le contrôleur:
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
-                            @endforeach
-                            --}}
+                            {{-- Les options seront chargées via JS --}}
                         </select>
                     </div>
                     <div class="mb-3">
@@ -432,12 +441,20 @@
             contactSelect.innerHTML = '<option value="">Chargement des contacts...</option>';
 
             try {
-                // Cette route doit exister et retourner une liste d'utilisateurs (id, name)
-                const response = await fetch("{{ route('chats.searchUsers') }}?query=", { // Utilise la route de recherche d'utilisateurs de chat
+                // Utilise la route de recherche d'utilisateurs de chat.
+                // Notez que cette route est définie dans routes/web.php et non dans routes/api.php.
+                // Si vous aviez une route spécifique dans api.php (ex: /api/users), il faudrait l'utiliser ici.
+                // Pour l'instant, nous utilisons 'chats.searchUsers' qui est déjà configurée pour retourner les utilisateurs.
+                const response = await fetch("{{ route('chats.searchUsers') }}?query=", {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
+                        // Si vous utilisez Laravel Sanctum pour l'authentification API,
+                        // vous pourriez avoir besoin d'inclure le token CSRF même pour les GET
+                        // ou vous assurer que votre route est dans un groupe sans middleware 'auth:sanctum'
+                        // pour les requêtes GET publiques (ce qui n'est pas le cas ici, car c'est 'auth' web).
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
                 });
 
@@ -445,7 +462,9 @@
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
                 }
 
-                const users = await response.json();
+                const data = await response.json(); // Parse la réponse JSON
+                // CORRECTION ICI : Accéder au tableau d'utilisateurs via la clé 'users'
+                const users = data.users;
                 console.log('Users received for call modal:', users);
 
                 contactSelect.innerHTML = '<option value="">Sélectionnez un contact</option>';
@@ -484,7 +503,8 @@
                 const callType = document.querySelector('input[name="call_type"]:checked').value;
 
                 if (!receiverId) {
-                    alert('Veuillez sélectionner un contact.'); // Utiliser un modal personnalisé en production
+                    // Utiliser un modal personnalisé en production au lieu d'alert
+                    alert('Veuillez sélectionner un contact.');
                     return;
                 }
 
@@ -507,19 +527,22 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        alert(data.message + ` Call ID: ${data.call_id}`); // Utiliser un modal personnalisé
+                        // Utiliser un modal personnalisé en production au lieu d'alert
+                        alert(data.message + ` Call ID: ${data.call_id}`);
                         // Fermer le modal après l'initiation de l'appel
                         const modal = bootstrap.Modal.getInstance(initiateCallModal);
                         if (modal) modal.hide();
                         // Ici, vous lanceriez l'interface d'appel (WebRTC)
                         console.log('Call initiated response:', data);
                     } else {
-                        alert('Erreur lors de l\'initiation de l\'appel: ' + (data.message || 'Erreur inconnue')); // Utiliser un modal personnalisé
+                        // Utiliser un modal personnalisé en production au lieu d'alert
+                        alert('Erreur lors de l\'initiation de l\'appel: ' + (data.message || 'Erreur inconnue'));
                         console.error('Call initiation error:', data);
                     }
                 } catch (error) {
                     console.error('Network or unexpected error during call initiation:', error);
-                    alert('Une erreur inattendue est survenue. Veuillez réessayer.'); // Utiliser un modal personnalisé
+                    // Utiliser un modal personnalisé en production au lieu d'alert
+                    alert('Une erreur inattendue est survenue. Veuillez réessayer.');
                 }
             });
         }

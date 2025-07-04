@@ -2,7 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CallController; // Importer le CallController
+use App\Http\Controllers\CallController;
+use App\Http\Controllers\UserController; // Importez le UserController
 
 /*
 |--------------------------------------------------------------------------
@@ -26,3 +27,7 @@ Route::prefix('calls')->middleware('auth:sanctum')->group(function () {
     Route::post('/reject', [CallController::class, 'reject']);
     Route::post('/end', [CallController::class, 'end']);
 });
+
+// NOUVELLE ROUTE API POUR RÉCUPÉRER TOUS LES UTILISATEURS (sauf l'utilisateur actuel)
+Route::middleware('auth:sanctum')->get('/users', [UserController::class, 'indexApi'])->name('api.users.index');
+

@@ -1,4 +1,3 @@
-{{-- resources/views/listings/index.blade.php --}}
 @extends('layouts.user')
 
 @section('title', 'Annonces d\'Emploi et Services - Jobela RDC')
@@ -14,15 +13,15 @@
     </h5>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show whatsapp-alert" role="alert">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap"> {{-- Added flex-wrap for responsiveness --}}
         {{-- Zone de recherche WhatsApp --}}
-        <form action="{{ route('listings.index') }}" method="GET" class="whatsapp-search-form flex-grow-1 me-3">
+        <form action="{{ route('listings.index') }}" method="GET" class="whatsapp-search-form flex-grow-1 me-3 mb-2 mb-md-0"> {{-- Added mb-2 for spacing on small screens --}}
             <div class="input-group">
                 <input type="text" name="search" class="form-control whatsapp-search-input" placeholder="{{ __('Rechercher annonces...') }}" value="{{ request('search') }}">
                 <button class="btn whatsapp-search-btn" type="submit">
@@ -56,7 +55,21 @@
                                     $avatarHtml = '<img src="' . $avatarSrc . '" alt="Photo de profil de ' . $user->name . '" class="avatar-thumbnail">';
                                 } else {
                                     // Fallback to initials avatar if no profile picture
-                                    $avatarHtml = '<div class="avatar-text-placeholder" style="background-color: ' . ($user->avatar_bg_color ?? '#777') . ';">' . ($user->initials ?? '??') . '</div>';
+                                    $initials = '';
+                                    if ($user->name) {
+                                        $words = explode(' ', $user->name);
+                                        foreach ($words as $word) {
+                                            $initials .= strtoupper(substr($word, 0, 1));
+                                        }
+                                        if (strlen($initials) > 2) {
+                                            $initials = substr($initials, 0, 2);
+                                        }
+                                    } else {
+                                        $initials = '??';
+                                    }
+                                    // Générer une couleur cohérente basée sur l'email ou l'ID de l'utilisateur
+                                    $bgColor = '#' . substr(md5($user->email ?? $user->id ?? uniqid()), 0, 6);
+                                    $avatarHtml = '<div class="avatar-text-placeholder" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
                                 }
                             } else {
                                 // Fallback for anonymous or deleted user
@@ -76,7 +89,13 @@
                                 {{ $listing->created_at->locale('fr')->diffForHumans() }}
                             </small>
                         </div>
-                        <p class="text-muted small mb-2 listing-type">{{ $listing->posted_by_type ?? 'Type non spécifié' }}</p>
+                        <p class="text-muted small mb-2 listing-type">
+                            @if($listing->is_job_offer)
+                                <i class="fas fa-briefcase me-1"></i> Offre d'emploi
+                            @else
+                                <i class="fas fa-handshake me-1"></i> Offre de service
+                            @endif
+                        </p>
 
                         <h5 class="card-title mt-2">{{ $listing->title }}</h5>
                         <p class="card-text mb-1 listing-location">
@@ -146,6 +165,24 @@
         margin-bottom: 25px !important;
     }
 
+    .whatsapp-alert {
+        background-color: #ffebee; /* Light red */
+        color: #c62828; /* Darker red text */
+        border-color: #ef9a9a; /* Red border */
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        font-size: 0.95rem;
+    }
+    .whatsapp-alert .btn-close {
+        filter: none; /* Reset filter for close button */
+        color: #c62828; /* Match text color */
+    }
+    .whatsapp-alert ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin-bottom: 0;
+    }
+
     /* WhatsApp Search Bar Styles */
     .whatsapp-search-form {
         border-radius: 20px; /* Highly rounded */
@@ -192,13 +229,15 @@
         border-color: var(--whatsapp-primary-button);
         color: white;
         font-weight: 600;
-        transition: background-color 0.2s ease, border-color 0.2s ease;
+        transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
     .btn-whatsapp-primary:hover {
         background-color: var(--whatsapp-green-light);
         border-color: var(--whatsapp-green-light);
         color: white;
+        transform: translateY(-1px);
     }
 
     .listings-container {
@@ -256,7 +295,13 @@
     .listing-type {
         font-weight: 500; /* Make type slightly bolder */
         color: var(--whatsapp-text-muted);
+        display: flex; /* Align icon with text */
+        align-items: center;
     }
+    .listing-type i {
+        font-size: 0.9em; /* Adjust icon size relative to text */
+    }
+
 
     .card-title {
         font-size: 1.25rem; /* Larger and more prominent title */
@@ -280,13 +325,14 @@
         color: var(--whatsapp-green-light);
         border-color: var(--whatsapp-green-light);
         font-weight: 600;
-        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
     }
 
     .btn-outline-whatsapp-green:hover {
         background-color: var(--whatsapp-green-light);
         color: white;
         border-color: var(--whatsapp-green-light);
+        transform: translateY(-1px);
     }
 
     .alert-info.whatsapp-card { /* Style for empty state alert */
@@ -298,7 +344,7 @@
     }
 
     /* Responsive adjustments */
-    @media (max-width: 767px) {
+    @media (max-width: 767.98px) { /* Use 767.98px for Bootstrap's 'sm' breakpoint */
         .content-section {
             padding: 10px;
         }
@@ -308,14 +354,22 @@
             margin-bottom: 15px !important;
         }
 
+        .d-flex.flex-wrap {
+            flex-direction: column; /* Stack items vertically */
+            align-items: stretch; /* Stretch items to full width */
+        }
+
         .whatsapp-search-form {
-            margin-right: 1rem !important; /* Adjust margin for smaller screens */
+            margin-right: 0 !important; /* Remove right margin on small screens */
+            margin-bottom: 1rem !important; /* Add bottom margin for spacing */
+            width: 100%; /* Full width */
         }
 
         .btn-whatsapp-primary {
-            padding: 0.6rem 1rem !important; /* Adjust padding for smaller button */
+            padding: 0.6rem 1rem !important;
             font-size: 0.9rem !important;
-            white-space: nowrap; /* Prevent button text from wrapping */
+            white-space: nowrap;
+            width: 100%; /* Full width */
         }
 
         .avatar-thumbnail, .avatar-text-placeholder {
