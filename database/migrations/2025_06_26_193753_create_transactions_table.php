@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade'); // L'utilisateur à l'origine de la transaction
-            $table->foreignId('job_id')->nullable()->constrained()->onDelete('set null'); // Le job concerné par la transaction (si c'est un boost)
+
+            // CORRECTION ICI : Spécifier explicitement la table 'job_postings'
+            $table->foreignId('job_id')->nullable()->constrained('job_postings')->onDelete('set null'); // Le job concerné par la transaction (si c'est un boost)
+
             $table->string('transaction_id')->unique(); // ID de la transaction du fournisseur de paiement (Orange Money, M-Pesa)
             $table->decimal('amount', 10, 2); // Montant de la transaction
             $table->string('currency')->default('CDF'); // Monnaie (CDF, USD)
