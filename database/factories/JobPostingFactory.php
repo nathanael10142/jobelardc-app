@@ -2,12 +2,22 @@
 
 namespace Database\Factories;
 
+// N'oublie pas d'importer le modèle renommé !
+use App\Models\JobPosting; // <-- CHANGEMENT ICI : Importe le nouveau modèle JobPosting
 use App\Models\User;
-use App\Models\Category; // Ensure Category model is imported
+use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-class JobFactory extends Factory
+// Renomme la classe de JobFactory à JobPostingFactory
+class JobPostingFactory extends Factory // <-- CHANGEMENT ICI : Renomme la classe
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected $model = JobPosting::class; // <-- CHANGEMENT ICI : Fais pointer vers le nouveau modèle
+
     /**
      * Define the model's default state.
      *

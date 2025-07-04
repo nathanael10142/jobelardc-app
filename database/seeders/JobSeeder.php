@@ -2,9 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\Job;
-use App\Models\User; // Garder l'import si d'autres parties du seeder l'utilisent, sinon peut être retiré
-use App\Models\Category; // Garder l'import si d'autres parties du seeder l'utilisent, sinon peut être retiré
+// Supprime l'ancien import
+// use App\Models\Job;
+// Ajoute le nouvel import pour ton modèle renommé
+use App\Models\JobPosting; // <-- CHANGEMENT ICI
+
+use App\Models\User;
+use App\Models\Category;
 use Illuminate\Database\Seeder;
 
 class JobSeeder extends Seeder
@@ -14,15 +18,7 @@ class JobSeeder extends Seeder
      */
     public function run(): void
     {
-        // Les utilisateurs et les catégories sont censés être déjà créés
-        // par le DatabaseSeeder principal qui appelle RolesAndPermissionsSeeder
-        // et CategorySeeder. Cela évite la duplication de logique et les conflits.
-
-        // Crée 50 jobs factices
-        // Les factories de jobs génèrent généralement des données uniques pour la plupart des champs.
-        // Si votre modèle Job a des contraintes d'unicité sur des champs que la factory pourrait
-        // dupliquer (ce qui est rare pour des jobs génériques), vous pourriez envisager
-        // une logique plus complexe ici, mais pour la plupart des cas, create() est suffisant.
-        Job::factory(50)->create();
+        // Crée 50 jobs factices en utilisant le modèle JobPosting
+        JobPosting::factory(50)->create(); // <-- CHANGEMENT ICI
     }
 }
