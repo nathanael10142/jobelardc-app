@@ -12,15 +12,40 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# MODIFICATION ICI : Forcer la reconstruction de l'autochargement Composer
-echo "Dumping Composer autoload files..."
-COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload
+# MODIFICATION ICI : Vider TOUS les caches Laravel au début pour un état propre
+echo "Clearing ALL Laravel caches for a fresh start..."
+php artisan optimize:clear # Ceci inclut view:clear, cache:clear, config:clear, route:clear
+if [ $? -ne 0 ]; then
+    echo "Laravel cache clearing failed! Exiting."
+    exit 1
+fi
+
+# MODIFICATION ICI : Forcer la reconstruction de l'autochargement Composer de manière optimisée
+echo "Dumping Composer autoload files with optimization..."
+COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --optimize --no-dev
+# --optimize pour optimiser l'autochargement pour la production
+# --no-dev pour exclure les dépendances de développement de l'autochargement
 
 # Vérifier si dump-autoload a réussi
 if [ $? -ne 0 ]; then
     echo "Composer dump-autoload failed! Exiting."
     exit 1
 fi
+
+# MODIFICATION ICI : Reconstruire le cache de configuration et de routes APRÈS dump-autoload
+# Ces caches sont importants pour la performance et le bon fonctionnement de Laravel
+echo "Building Laravel configuration and route caches..."
+php artisan config:cache
+if [ $? -ne 0 ]; then
+    echo "Config cache failed! Exiting."
+    exit 1
+fi
+php artisan route:cache
+if [ $? -ne 0 ]; then
+    echo "Route cache failed! Exiting."
+    exit 1
+fi
+
 
 # Drop all tables, run migrations, and then run seeders
 echo "Running Laravel migrations and seeders from a fresh database..."
@@ -33,14 +58,6 @@ if [ $? -ne 0 ]; then
     echo "Migration and Seeding failed! Exiting."
     exit 1
 fi
-
-# Vider tous les caches Laravel
-echo "Clearing Laravel caches..."
-php artisan optimize:clear
-php artisan view:clear
-php artisan cache:clear
-php artisan config:clear
-php artisan route:clear
 
 # Démarrer le serveur Apache
 echo "Starting Apache..."
