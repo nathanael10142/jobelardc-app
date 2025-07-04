@@ -38,17 +38,20 @@ use App\Http\Controllers\Admin\UserController as AdminUserController; // Alias p
 */
 
 // Route d'accueil (racine de l'application)
-// Redirige vers le bon tableau de bord si l'utilisateur est authentifié, sinon vers la page de bienvenue.
+// Redirige vers le bon tableau de bord si l'utilisateur est authentifié.
+// Si l'utilisateur n'est PAS authentifié, redirige vers la page de connexion.
 Route::get('/', function () {
     if (Auth::check()) {
         $user = Auth::user();
         if ($user->hasAnyRole(['super_admin', 'admin'])) {
             return redirect()->route('admin.dashboard');
-        } elseif ($user->hasAnyRole(['employer', 'candidate', 'user'])) { // Inclure 'user' si c'est un rôle par défaut
-            return redirect()->route('listings.index'); // Redirige vers la liste des annonces pour les utilisateurs standards
         }
+        // Si l'utilisateur est authentifié mais n'est pas admin,
+        // il est redirigé vers la liste des annonces par défaut.
+        return redirect()->route('listings.index');
     }
-    return view('welcome');
+    // MODIFICATION ICI : Si l'utilisateur n'est PAS authentifié, redirige vers la page de connexion.
+    return redirect()->route('login');
 })->name('home');
 
 // Routes d'authentification standard de Laravel
@@ -201,4 +204,3 @@ Route::middleware(['auth'])->group(function () {
         "<h1>Redirection de test : Si vous voyez ceci, la redirection fonctionne bien.</h1>"
     )->name('redirection-test');
 });
-
