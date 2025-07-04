@@ -1,17 +1,15 @@
 <?php
 
-namespace App\Models;
-
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+// use Illuminate\Contracts\Auth\MustVerifyEmail; // Commenter ou supprimer cette ligne
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany; // <--- AJOUTEZ CETTE LIGNE
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable // Supprimer "implements MustVerifyEmail"
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
