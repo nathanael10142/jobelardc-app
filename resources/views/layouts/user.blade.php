@@ -1,3 +1,8 @@
+<?php
+// C'est ici que les déclarations 'use' doivent être placées dans un fichier Blade
+// Elles seront compilées au tout début du fichier PHP généré.
+use Illuminate\Support\Str;
+?>
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -452,7 +457,6 @@
                         {{-- Menu déroulant pour l'utilisateur connecté --}}
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                @php use Illuminate\Support\Str; @endphp {{-- Import Str for avatar logic --}}
                                 {{-- Afficher l'avatar et le nom/icône --}}
                                 @php
                                     $user = Auth::user();
@@ -473,13 +477,15 @@
                                                 foreach ($words as $word) {
                                                     $initials .= strtoupper(substr($word, 0, 1));
                                                 }
-                                                if (strlen($initials) > 2) { // Limit to two initials
+                                                // Ensure initials are max 2 characters
+                                                if (strlen($initials) > 2) {
                                                     $initials = substr($initials, 0, 2);
                                                 }
                                             } else {
                                                 $initials = '??';
                                             }
-                                            $bgColor = '#' . substr(md5($user->email ?? $user->id), 0, 6); // Generate consistent color
+                                            // Generate consistent color based on user ID or email
+                                            $bgColor = '#' . substr(md5($user->email ?? $user->id ?? uniqid()), 0, 6);
                                             $avatarHtml = '<div class="navbar-avatar-text-placeholder" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
                                         }
                                     } else {
@@ -561,15 +567,15 @@
                 document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => item.classList.remove('active'));
 
                 // Set active for tab items
-                if (currentPath === '{{ route('chats.index', [], false) }}') { // Ensure non-absolute path for comparison
+                if (currentPath.startsWith('{{ route('chats.index', [], false) }}')) { // Use startsWith for chat conversations
                     document.getElementById('tab-chats').classList.add('active');
-                } else if (currentPath === '{{ route('status.index', [], false) }}') {
+                } else if (currentPath.startsWith('{{ route('status.index', [], false) }}')) {
                     document.getElementById('tab-status').classList.add('active');
-                } else if (currentPath === '{{ route('calls.index', [], false) }}') {
+                } else if (currentPath.startsWith('{{ route('calls.index', [], false) }}')) {
                     document.getElementById('tab-calls').classList.add('active');
-                } else if (currentPath === '{{ route('camera.index', [], false) }}') {
+                } else if (currentPath.startsWith('{{ route('camera.index', [], false) }}')) {
                      document.querySelector('.camera-icon').classList.add('active');
-                } else if (currentPath === '{{ route('home', [], false) }}' || currentPath === '{{ route('listings.index', [], false) }}') {
+                } else if (currentPath === '{{ route('home', [], false) }}' || currentPath.startsWith('{{ route('listings.index', [], false) }}')) {
                     // For the home/listings page, no tab might be active or you could activate 'Chats' if it's the default.
                     // For now, no specific tab is highlighted.
                 }
