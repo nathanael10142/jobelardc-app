@@ -67,8 +67,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 # Copier .env.example vers .env (nécessaire pour certaines étapes de build)
 RUN cp .env.example .env
 
-# Exécuter composer install AVEC --no-scripts
-RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --optimize-autoloader --no-scripts
+# MODIFICATION CRUCIALE : Exclure les dépendances de développement lors de l'installation de Composer
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --optimize-autoloader --no-dev --no-scripts
 
 # Définir les permissions correctes
 RUN chown -R www-data:www-data storage bootstrap/cache
