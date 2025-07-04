@@ -1,6 +1,8 @@
 <?php
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail; // Commenter ou supprimer cette ligne
+namespace App\Models; // <--- CETTE LIGNE MANQUAIT ET EST CRUCIALE !
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail; // Laissez commenté si vous voulez désactiver la vérification
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -9,7 +11,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class User extends Authenticatable // Supprimer "implements MustVerifyEmail"
+class User extends Authenticatable // Ne pas implémenter MustVerifyEmail si vous voulez désactiver la vérification
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
