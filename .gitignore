@@ -1,8 +1,15 @@
+# Ignorer les fichiers de log
 *.log
+
+# Fichiers spécifiques à macOS
 .DS_Store
+
+# Fichiers d'environnement
 .env
 .env.backup
 .env.production
+
+# Fichiers de configuration et de cache d'outils de développement
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -12,13 +19,23 @@
 /.vscode
 /.zed
 /auth.json
+
+# Dépendances et builds
 /node_modules
 /public/build
 /public/hot
-/public/storage
+/public/storage # Ignorer le dossier de stockage public (symlink vers storage/app/public)
 /storage/*.key
 /storage/pail
 /vendor
+
+# Fichiers de configuration Homestead
 Homestead.json
 Homestead.yaml
+
+# Fichiers temporaires Windows
 Thumbs.db
+
+# Fichiers temporaires ou indésirables ajoutés manuellement
+cls
+git
