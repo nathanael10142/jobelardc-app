@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User; // Assurez-vous d'avoir un modèle User
-use App\Events\CallInitiated; // Nous allons créer cet événement
-use App\Events\CallAccepted;    // Nous allons créer cet événement
-use App\Events\CallRejected;    // Nous allons créer cet événement
-use App\Events\CallEnded;       // Nous allons créer cet événement
+use App\Models\User;
+use App\Events\CallInitiated;
+use App\Events\CallAccepted;
+use App\Events\CallRejected;
+use App\Events\CallEnded;
 use Illuminate\Support\Facades\Log;
 
 class CallController extends Controller
@@ -16,8 +16,25 @@ class CallController extends Controller
     // Nécessite que l'utilisateur soit authentifié pour initier/gérer les appels
     public function __construct()
     {
-        $this->middleware('auth:sanctum'); // Ou 'auth' si vous n'utilisez pas Sanctum pour les API
+        $this->middleware('auth:sanctum')->only(['initiate', 'accept', 'reject', 'end']); // Appliquer pour les API
+        $this->middleware('auth')->only(['index']); // Appliquer pour la vue web
     }
+
+    /**
+     * Affiche la page des appels.
+     * Pour l'instant, c'est une vue simple. Vous y ajouterez la logique pour l'historique des appels.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function index()
+    {
+        // Vous pouvez passer des données à la vue ici, par exemple un historique d'appels
+        // $user = Auth::user();
+        // $calls = $user->calls()->latest()->get(); // Nécessite une relation 'calls' sur le modèle User
+
+        return view('calls.index'); // Assurez-vous de créer cette vue (e.g., resources/views/calls/index.blade.php)
+    }
+
 
     /**
      * Initie un nouvel appel vers un utilisateur.
