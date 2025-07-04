@@ -49,9 +49,8 @@ fi
 # Cela permet au serveur web d'écrire dans ces répertoires.
 echo "Setting permissions for storage and bootstrap/cache directories..."
 chmod -R 775 storage bootstrap/cache
-# Si la commande chown est disponible et que l'utilisateur 'www-data' existe dans l'environnement Render,
-# vous pouvez décommenter la ligne suivante. Sinon, 775 devrait suffire.
-# chown -R www-data:www-data storage bootstrap/cache 
+# DÉCOMMENTÉ: Changer le propriétaire des répertoires pour l'utilisateur Apache (www-data)
+chown -R www-data:www-data storage bootstrap/cache 
 if [ $? -ne 0 ]; then
     echo "Setting permissions failed! Exiting."
     exit 1
