@@ -32,16 +32,16 @@ class ChatController extends Controller
             $query->where(function ($q) use ($searchTerm, $user) {
                 // Recherche par nom de conversation (pour les groupes, si vous en avez)
                 $q->where('name', 'like', '%' . $searchTerm . '%')
-                  // Recherche par nom d'utilisateur participant à la conversation
-                  ->orWhereHas('users', function ($subQuery) use ($searchTerm, $user) {
-                      // Exclure l'utilisateur actuel de la recherche de noms de participants
-                      $subQuery->where('users.id', '!=', $user->id)
-                               ->where('name', 'like', '%' . $searchTerm . '%');
-                  })
-                  // Recherche par contenu du dernier message
-                  ->orWhereHas('lastMessage', function ($subQuery) use ($searchTerm) {
-                      $subQuery->where('body', 'like', '%' . $searchTerm . '%');
-                  });
+                    // Recherche par nom d'utilisateur participant à la conversation
+                    ->orWhereHas('users', function ($subQuery) use ($searchTerm, $user) {
+                        // Exclure l'utilisateur actuel de la recherche de noms de participants
+                        $subQuery->where('users.id', '!=', $user->id)
+                                 ->where('name', 'like', '%' . $searchTerm . '%');
+                    })
+                    // Recherche par contenu du dernier message
+                    ->orWhereHas('lastMessage', function ($subQuery) use ($searchTerm) {
+                        $subQuery->where('body', 'like', '%' . $searchTerm . '%');
+                    });
             });
         }
 
@@ -62,6 +62,7 @@ class ChatController extends Controller
 
     /**
      * Affiche une conversation spécifique et marque les messages comme lus.
+     * Cette méthode est souvent pour une vue HTML.
      */
     public function show(Conversation $conversation)
     {
@@ -87,8 +88,9 @@ class ChatController extends Controller
 
     /**
      * Stocke un nouveau message dans une conversation.
+     * Cette méthode est renommée de 'store' à 'sendMessage' pour correspondre à la route.
      */
-    public function store(Request $request, Conversation $conversation)
+    public function sendMessage(Request $request, Conversation $conversation) // <-- CHANGEMENT : 'store' devient 'sendMessage'
     {
         if (!$conversation->users->contains(Auth::id())) {
             return response()->json(['error' => 'Accès non autorisé à cette discussion.'], 403);
@@ -111,6 +113,33 @@ class ChatController extends Controller
             'message' => $message->load('user')
         ]);
     }
+
+    /**
+     * Récupère les messages d'une conversation spécifique pour l'API.
+     * Nouvelle méthode pour correspondre à la route 'getMessages'.
+     */
+    public function getMessages(Conversation $conversation) // <-- NOUVELLE MÉTHODE : 'getMessages'
+    {
+        if (!$conversation->users->contains(Auth::id())) {
+            return response()->json(['error' => 'Accès non autorisé à cette discussion.'], 403);
+        }
+
+        $messages = $conversation->messages()
+            ->with('user')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Si tu veux que cette action marque aussi les messages comme lus (comme 'show' le fait), ajoute la boucle ici:
+        // $user = Auth::user();
+        // foreach ($messages as $message) {
+        //     if ($message->user_id !== $user->id && !$message->readBy->contains($user->id)) {
+        //         $message->readBy()->attach($user->id);
+        //     }
+        // }
+
+        return response()->json(['messages' => $messages]);
+    }
+
 
     /**
      * Recherche d'utilisateurs par nom ou email,
