@@ -1,8 +1,3 @@
-<?php
-// C'est ici que les déclarations 'use' doivent être placées dans un fichier Blade
-// Elles seront compilées au tout début du fichier PHP généré.
-use Illuminate\Support\Str;
-?>
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -17,7 +12,6 @@ use Illuminate\Support\Str;
     {{-- Fonts: Nunito est un bon choix pour sa lisibilité, proche de l'esprit WhatsApp --}}
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800&display=swap" rel="stylesheet">
-    {{-- <link href="{{ asset('css/user.css') }}" rel="stylesheet"> --}} {{-- Commenté car le CSS est inline ici --}}
 
     {{-- Bootstrap 5.3.3 CSS (via CDN) - Base de la grille et des composants --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -567,8 +561,14 @@ use Illuminate\Support\Str;
                 // Ajoutez d'autres données utilisateur nécessaires ici si vous en avez besoin dans le frontend
             }
         };
+        console.log('window.Laravel.user initialized:', window.Laravel.user); // AJOUTÉ POUR DEBUG
     </script>
     @endauth
+
+    {{-- Votre fichier app.js compilé (qui importe calls.js et initialise Echo) --}}
+    {{-- DOIT ÊTRE CHARGÉ APRÈS window.Laravel et AVANT les scripts spécifiques à la page --}}
+    @vite('resources/js/app.js') {{-- C'est la ligne clé pour Vite --}}
+    {{-- OU si vous utilisez Laravel Mix : <script src="{{ asset('js/app.js') }}"></script> --}}
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
