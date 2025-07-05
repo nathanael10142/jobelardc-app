@@ -153,6 +153,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/accept', [CallController::class, 'accept'])->name('accept');
         Route::post('/reject', [CallController::class, 'reject'])->name('reject');
         Route::post('/end', [CallController::class, 'end'])->name('end');
+        // NOUVELLE ROUTE POUR LA SIGNALISATION WEBRTC
+        Route::post('/signal', [CallController::class, 'signal'])->name('signal'); // <-- C'est la ligne ajoutée/modifiée !
     });
 
 
