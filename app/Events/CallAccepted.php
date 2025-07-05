@@ -19,7 +19,7 @@ class CallAccepted implements ShouldBroadcast
     public $receiver;
 
     /**
-     * Crée une nouvelle instance d'événement.
+     * Crée une nouvelle instance d'événement (vue nathanael batera akilimali) via local-$<{name}
      *
      * @param string $callId L'ID unique de l'appel.
      * @param User $caller L'utilisateur qui a initié l'appel.
