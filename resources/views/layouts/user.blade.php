@@ -553,15 +553,20 @@
     {{-- Script pour passer l'ID de l'utilisateur au JavaScript global --}}
     @auth
     <script>
-        // Rendre les données utilisateur disponibles globalement pour JavaScript
+        // Rendre les données utilisateur et les routes nécessaires disponibles globalement pour JavaScript
         window.Laravel = {
             user: {
                 id: {{ Auth::user()->id }},
                 name: "{{ Auth::user()->name }}",
                 // Ajoutez d'autres données utilisateur nécessaires ici si vous en avez besoin dans le frontend
+            },
+            // NOUVELLE SECTION POUR LES ROUTES
+            routes: {
+                chatsSearchUsers: "{{ route('chats.searchUsers') }}"
+                // Vous pouvez ajouter d'autres routes ici si d'autres parties de votre JS en ont besoin
             }
         };
-        console.log('window.Laravel.user initialized:', window.Laravel.user); // AJOUTÉ POUR DEBUG
+        console.log('window.Laravel initialized:', window.Laravel); // AJOUTÉ POUR DEBUG - Vérifiez cet objet dans la console
     </script>
     @endauth
 
