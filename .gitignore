@@ -22,7 +22,7 @@
 
 # Dépendances et builds
 /node_modules
-/public/build
+# /public/build  <-- Cette ligne a été commentée pour permettre le suivi du dossier public/build
 /public/hot
 /public/storage # Ignorer le dossier de stockage public (symlink vers storage/app/public)
 /storage/*.key
