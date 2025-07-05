@@ -16,7 +16,6 @@ window.Echo = new Echo({
 console.log('Laravel Echo initialized for Pusher.');
 
 // --- Références aux éléments du DOM pour les appels ---
-// Ces éléments sont supposés exister dans calls/index.blade.php
 const initiateCallModalElement = document.getElementById('initiateCallModal');
 const contactSelect = document.getElementById('contactSelect');
 const initiateCallForm = document.getElementById('initiateCallForm');
@@ -197,7 +196,8 @@ function createPeerConnection(isCaller) {
 // 3. Envoyer des messages de signalisation via le backend
 async function sendSignal(type, payload, receiverId) {
     try {
-        const response = await fetch("{{ route('calls.signal') }}", { // Nouvelle route à créer
+        // UTILISATION DE window.Laravel.routes.callsSignal
+        const response = await fetch(window.Laravel.routes.callsSignal, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -266,7 +266,8 @@ async function acceptCall() {
 
     // Envoyer l'acceptation au backend
     try {
-        const response = await fetch("{{ route('calls.accept') }}", {
+        // UTILISATION DE window.Laravel.routes.callsAccept
+        const response = await fetch(window.Laravel.routes.callsAccept, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -310,7 +311,8 @@ async function acceptCall() {
 async function rejectCall() {
     hideIncomingCallUI(); // Cacher le modal d'appel entrant
     try {
-        const response = await fetch("{{ route('calls.reject') }}", {
+        // UTILISATION DE window.Laravel.routes.callsReject
+        const response = await fetch(window.Laravel.routes.callsReject, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -340,7 +342,8 @@ async function endCall(callId, participantId, duration = 0) {
     hideIncomingCallUI(); // Cache l'UI d'appel entrant si elle était visible
 
     try {
-        const response = await fetch("{{ route('calls.end') }}", {
+        // UTILISATION DE window.Laravel.routes.callsEnd
+        const response = await fetch(window.Laravel.routes.callsEnd, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -414,7 +417,6 @@ if (hangupButton) {
 
 
 // --- Événements DOM et Initialisation des listeners ---
-// La plupart des listeners WebRTC sont gérés par Echo, mais les listeners DOM doivent être ici.
 document.addEventListener('DOMContentLoaded', function() {
     // Charger les utilisateurs lorsque le modal d'initiation est affiché
     if (initiateCallModalElement) {
@@ -437,7 +439,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`Initiating ${callType} call to user ID: ${receiverId}`);
 
             try {
-                const response = await fetch("{{ route('calls.initiate') }}", {
+                // UTILISATION DE window.Laravel.routes.callsInitiate
+                const response = await fetch(window.Laravel.routes.callsInitiate, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -596,9 +599,17 @@ async function loadUsersForCall() {
     contactSelect.innerHTML = '<option value="">Chargement des contacts...</option>';
 
     try {
-        // NOTE: Utilisez la route API si vous l'avez configurée dans routes/api.php
-        // Sinon, utilisez la route web comme chats.searchUsers
-        const response = await fetch("{{ route('chats.searchUsers') }}?query=", {
+        // UTILISATION DE window.Laravel.routes.chatsSearchUsers
+        // Assurez-vous que window.Laravel.routes.chatsSearchUsers est bien défini
+        if (!window.Laravel || !window.Laravel.routes || !window.Laravel.routes.chatsSearchUsers) {
+            console.error("window.Laravel.routes.chatsSearchUsers n'est pas défini. Vérifiez votre fichier Blade.");
+            contactSelect.innerHTML = '<option value="">Erreur: Route non définie</option>';
+            return;
+        }
+        const searchUsersUrl = window.Laravel.routes.chatsSearchUsers;
+        console.log('Fetching users from:', searchUsersUrl);
+
+        const response = await fetch(`${searchUsersUrl}?query=`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -608,7 +619,8 @@ async function loadUsersForCall() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+            const errorText = await response.text(); // Lire le texte de l'erreur pour plus de détails
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
