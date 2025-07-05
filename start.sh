@@ -68,20 +68,14 @@ chown -R www-data:www-data storage bootstrap/cache
 
 # --- 4. Démarrage des Services Applicatifs ---
 
-# Nettoyer le cache d'application et de configuration avant de démarrer le queue worker.
-# Ceci est une précaution supplémentaire pour le worker, car il tourne en arrière-plan.
-echo "7. Clearing config and application cache specifically for the queue worker..."
-php artisan config:clear
-php artisan cache:clear
-
 # Démarrer le queue worker en arrière-plan. Il est essentiel pour les tâches asynchrones comme les notifications Pusher.
-echo "8. Starting Laravel queue worker in background..."
+echo "7. Starting Laravel queue worker in background..."
 php artisan queue:work --daemon --tries=3 &
 # Ajouter une petite pause pour permettre au worker de s'initialiser et de logguer d'éventuelles erreurs de démarrage.
 sleep 5
 
 # Démarrer le serveur Apache.
-echo "9. Starting Apache in foreground..."
+echo "8. Starting Apache in foreground..."
 apache2-foreground
 
 echo "--- Jobela RDC Deployment Script Finished ---"
