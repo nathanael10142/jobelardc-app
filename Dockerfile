@@ -30,6 +30,7 @@ RUN docker-php-ext-install opcache
 RUN a2enmod rewrite
 
 # Copier le fichier .htaccess de Laravel vers le bon emplacement dans le serveur web.
+# IMPORTANT: Ceci doit être fait avant de copier le reste de l'app si .htaccess est dans public/
 COPY public/.htaccess /var/www/html/public/.htaccess
 
 # Définir le répertoire racine du document Apache au dossier 'public' de Laravel.
@@ -50,37 +51,40 @@ RUN echo '<Directory /var/www/html/public>' >> /etc/apache2/apache2.conf && \
 # Définir le répertoire de travail par défaut pour les commandes futures dans le conteneur.
 WORKDIR /var/www/html
 
+# Copier TOUS les fichiers de l'application Laravel dans le répertoire du serveur web.
+# C'est CRUCIAL pour que 'npm run build' trouve les fichiers dans 'resources/'
+COPY . .
+
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
-# Copier composer.json et composer.lock pour installer les dépendances PHP
-COPY composer.json composer.lock ./
-
+# Exécuter les commandes Composer (maintenant que tous les fichiers sont là)
 # MODIFICATION CRUCIALE : Exclure les dépendances de développement lors de l'installation de Composer
+# Utilisez --no-scripts pour éviter les problèmes si des scripts Composer dépendent de Node.js non encore installé.
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --optimize-autoloader --no-dev --no-scripts
 
-# AJOUT : Déclarer les arguments de build pour les variables VITE_
+# Déclarer les arguments de build pour les variables VITE_
 # Render.com injectera les variables d'environnement définies dans ses settings ici.
 ARG VITE_PUSHER_APP_KEY
 ARG VITE_PUSHER_APP_CLUSTER
 
-# AJOUT : Copier les fichiers Node.js/Vite nécessaires
-COPY package.json package-lock.json vite.config.js ./
-
-# AJOUT : Installer les dépendances Node.js et compiler les assets frontend avec Vite
+# Installer les dépendances Node.js et compiler les assets frontend avec Vite
+# Maintenant que 'resources/' est copié, cette commande devrait trouver app.css/app.js
 RUN npm install && npm run build
-
-# Copier le reste de l'application (important de le faire après les étapes de build des dépendances)
-COPY . .
 
 # Définir les permissions correctes
 RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
 
+# Copier .env.example vers .env (nécessaire pour certaines étapes de build si non déjà fait)
+# C'est mieux de le faire ici, après avoir copié tout le reste du code.
+RUN cp .env.example .env
+
 # AJOUT DE COMMANDES DE DÉBOGAGE POUR VÉRIFIER LES FICHIERS ET LA CONFIGURATION APACHE
 RUN echo "--- Listing /var/www/html/ ---" && ls -la /var/www/html/
 RUN echo "--- Listing /var/www/html/public/ ---" && ls -la /var/www/html/public/
 RUN echo "--- Content of /var/www/html/public/build/manifest.json ---" && cat /var/www/html/public/build/manifest.json || echo "manifest.json not found in build directory"
+RUN echo "--- Content of /var/www/html/resources/css/app.css ---" && cat /var/www/html/resources/css/app.css || echo "resources/css/app.css not found"
 RUN echo "--- Content of /var/www/html/routes/web.php ---" && cat /var/www/html/routes/web.php || echo "routes/web.php not found"
 RUN echo "--- Content of /etc/apache2/sites-available/000-default.conf ---" && cat /etc/apache2/sites-available/000-default.conf
 RUN echo "--- Content of /etc/apache2/apache2.conf ---" && cat /etc/apache2/apache2.conf
@@ -88,10 +92,6 @@ RUN echo "--- Content of /etc/apache2/apache2.conf ---" && cat /etc/apache2/apac
 # Copier le script de démarrage et le rendre exécutable
 COPY start.sh /var/www/html/start.sh
 RUN chmod +x /var/www/html/start.sh
-
-# Copier .env.example vers .env (nécessaire pour certaines étapes de build si non déjà fait)
-# C'est mieux de le faire ici, après avoir copié tout le reste du code.
-RUN cp .env.example .env
 
 # Exposer le port 80 (Apache par défaut)
 EXPOSE 80
