@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\User;
-use App\Models\Job; // Ensure Job model is imported
+use App\Models\JobPosting; // <-- CHANGEMENT ICI : Importe le nouveau modèle JobPosting
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TransactionFactory extends Factory
@@ -23,7 +23,8 @@ class TransactionFactory extends Factory
         // Assigner un job existant de manière aléatoire, ou null 30% du temps.
         // Si aucun job n'existe (ce qui ne devrait pas arriver si JobSeeder s'exécute en premier),
         // alors créez-en un, sinon assignez null.
-        $jobId = $this->faker->boolean(70) ? (Job::inRandomOrder()->first()->id ?? Job::factory()) : null;
+        // CHANGEMENT ICI : Utilise JobPosting::class et JobPosting::factory()
+        $jobId = $this->faker->boolean(70) ? (JobPosting::inRandomOrder()->first()->id ?? JobPosting::factory()) : null;
 
         return [
             'user_id' => $userId,
