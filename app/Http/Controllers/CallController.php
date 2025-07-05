@@ -1,4 +1,4 @@
-<?php
+<?php // Cette balise doit être la toute première chose dans le fichier, sans aucun espace ou caractère avant.
 
 namespace App\Http\Controllers;
 
