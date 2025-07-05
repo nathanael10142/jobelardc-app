@@ -31,11 +31,11 @@ use Illuminate\Support\Str;
             /* Couleurs principales de la palette WhatsApp */
             --whatsapp-green-dark: #008069; /* Le vert en-tête principal */
             --whatsapp-green-light: #128C7E; /* Une nuance plus claire de vert */
-            --whatsapp-bg-light: #dadbd3;   /* Le fond gris-vert clair général */
-            --whatsapp-text-dark: #333;     /* Couleur de texte générale */
-            --whatsapp-text-muted: #666;    /* Texte secondaire, ex: date/heure */
-            --whatsapp-border: #e0e0e0;     /* Bordures légères */
-            --whatsapp-card-bg: #ffffff;   /* Fond des cartes et éléments blancs */
+            --whatsapp-bg-light: #dadbd3;    /* Le fond gris-vert clair général */
+            --whatsapp-text-dark: #333;      /* Couleur de texte générale */
+            --whatsapp-text-muted: #666;    /* Texte secondaire, ex: date/heure */
+            --whatsapp-border: #e0e0e0;      /* Bordures légères */
+            --whatsapp-card-bg: #ffffff;    /* Fond des cartes et éléments blancs */
             --whatsapp-hover-light: #f5f5f5; /* Couleur de survol légère */
             --whatsapp-shadow: rgba(0, 0, 0, 0.12); /* Ombre subtile */
             --whatsapp-chat-bg: url('https://placehold.co/800x600/e9e8de/a8b0bd?text=Fond+chat+Whatsapp'); /* Fond du chat inspiré */
@@ -555,6 +555,20 @@ use Illuminate\Support\Str;
 
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    {{-- Script pour passer l'ID de l'utilisateur au JavaScript global --}}
+    @auth
+    <script>
+        // Rendre les données utilisateur disponibles globalement pour JavaScript
+        window.Laravel = {
+            user: {
+                id: {{ Auth::user()->id }},
+                name: "{{ Auth::user()->name }}",
+                // Ajoutez d'autres données utilisateur nécessaires ici si vous en avez besoin dans le frontend
+            }
+        };
+    </script>
+    @endauth
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
