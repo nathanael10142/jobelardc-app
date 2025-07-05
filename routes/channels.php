@@ -14,8 +14,15 @@ use App\Models\User; // Assurez-vous d'importer le modèle User
 |
 */
 
-// Canal privé pour un utilisateur spécifique
+// Canal privé pour un utilisateur spécifique pour les appels
 // Seul l'utilisateur avec l'ID correspondant peut écouter ce canal.
-Broadcast::channel('users.{userId}', function (User $user, $userId) {
+// Le nom du canal côté serveur doit correspondre à celui écouté côté client.
+Broadcast::channel('calls.{userId}', function (User $user, $userId) {
     return (int) $user->id === (int) $userId;
 });
+
+// Si vous aviez d'autres canaux, ils resteraient ici.
+// Par exemple, si vous avez un canal pour les messages privés:
+// Broadcast::channel('private-chat.{userId}', function (User $user, $userId) {
+//     return (int) $user->id === (int) $userId;
+// });
