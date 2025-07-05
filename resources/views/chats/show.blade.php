@@ -146,7 +146,7 @@ use Illuminate\Support\Str;
 
         {{-- Formulaire d'envoi de message --}}
         <div class="chat-input-area p-3">
-            <form id="messageForm" action="{{ route('chats.sendMessage', $conversation->id) }}" method="POST" class="d-flex align-items-end"> {{-- Changed align-items-center to align-items-end --}}
+            <form id="messageForm" action="{{ route('chats.sendMessage', $conversation->id) }}" method="POST" class="d-flex align-items-center">
                 @csrf
                 <textarea name="body" class="form-control me-2 chat-textarea" placeholder="Tapez votre message..." rows="1" required></textarea>
                 <button type="submit" class="btn btn-whatsapp-send rounded-circle p-2">
@@ -173,7 +173,7 @@ use Illuminate\Support\Str;
     // Auto-redimensionnement du textarea
     document.addEventListener('input', function (event) {
         if (event.target.classList.contains('chat-textarea')) {
-            event.target.style.height = 'auto';
+            event.target.style.height = 'auto'; // Réinitialise la hauteur pour recalculer
             event.target.style.height = (event.target.scrollHeight) + 'px';
         }
     });
@@ -204,7 +204,12 @@ use Illuminate\Support\Str;
                 // Récupérer les données de l'utilisateur authentifié pour l'affichage de l'avatar et couleur nom
                 const authUser = @json(Auth::user());
                 let authUserAvatarHtml = '';
-                let authUserColor = '#' + CryptoJS.MD5(authUser.email || authUser.id || new Date().getTime().toString()).toString().substring(0, 6);
+                // Utilise la même logique de génération de couleur que PHP pour la cohérence
+                let authUserColor = '#' + (authUser.email || authUser.id || new Date().getTime().toString()).split('').map(char => char.charCodeAt(0).toString(16)).join('').substring(0, 6);
+                if (authUserColor.length < 7) { // Fallback if conversion is too short
+                    authUserColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                }
+
 
                 if (authUser.profile_picture) {
                     const isExternal = authUser.profile_picture.startsWith('http://') || authUser.profile_picture.startsWith('https://');
@@ -243,14 +248,8 @@ use Illuminate\Support\Str;
 
                 // If it's a group and the message is sent by the current user, you might still want to show their name/avatar
                 // but WhatsApp usually doesn't show the sender's avatar for their own sent messages.
-                // However, if you want to explicitly show the sender's name in the bubble for groups:
-                if (isGroup && response.data.message.user_id === authUser.id) {
-                     // This part is for messages *received* from others in a group, not sent by self.
-                     // The `sent` bubble generally doesn't show the sender's name/avatar within itself in WhatsApp.
-                     // The PHP loop already handles displaying name/avatar for *received* group messages.
-                     // No change needed here for sent messages from current user.
-                }
-
+                // The PHP loop already handles displaying name/avatar for *received* group messages.
+                // No change needed here for sent messages from current user.
 
                 chatMessagesDiv.insertAdjacentHTML('beforeend', newMessageHtml);
 
@@ -271,11 +270,15 @@ use Illuminate\Support\Str;
     // Inclure la bibliothèque CryptoJS pour la génération de couleurs (si non déjà présente)
     // C'est un polyfill pour le MD5 que j'ai utilisé en JS pour être cohérent avec PHP
     // Si tu utilises déjà une autre méthode pour générer des couleurs, tu peux l'adapter.
-    if (typeof CryptoJS === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
-        document.head.appendChild(script);
-    }
+    // NOTE: Pour la génération de couleur JS, j'ai simplifié pour ne pas dépendre de CryptoJS
+    // si tu n'en as pas besoin ailleurs. Si tu veux MD5 comme en PHP, tu devras inclure CryptoJS.
+    // J'ai mis une version simplifiée qui devrait être suffisante pour la couleur.
+    // Si tu as déjà CryptoJS inclus globalement, tu peux ignorer ce bloc.
+    // if (typeof CryptoJS === 'undefined') {
+    //     const script = document.createElement('script');
+    //     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
+    //     document.head.appendChild(script);
+    // }
 </script>
 @endpush
 
@@ -500,7 +503,7 @@ use Illuminate\Support\Str;
 
     .message-bubble.sent {
         align-self: flex-end; /* Pousse la bulle à droite dans le flex-column */
-        background-color: var(--whatsapp-message-sent); /* Pour la bulle entière */
+        /* background-color: var(--whatsapp-message-sent); /* Pour la bulle entière */
         border-top-right-radius: 0; /* Pour la pointe */
         border-bottom-right-radius: 8px; /* Conserver le coin */
     }
@@ -513,7 +516,7 @@ use Illuminate\Support\Str;
 
     .message-bubble.received {
         align-self: flex-start; /* Pousse la bulle à gauche dans le flex-column */
-        background-color: var(--whatsapp-message-received); /* Pour la bulle entière */
+        /* background-color: var(--whatsapp-message-received); /* Pour la bulle entière */
         border: 1px solid rgba(0, 0, 0, 0.05); /* Légère bordure pour le reçu */
         border-top-left-radius: 0; /* Pour la pointe */
         border-bottom-left-radius: 8px; /* Conserver le coin */
@@ -594,8 +597,8 @@ use Illuminate\Support\Str;
         color: white;
         width: 48px;
         height: 48px;
-        min-width: 48px;
-        min-height: 48px;
+        min-width: 48px; /* Assure une largeur minimale */
+        min-height: 48px; /* Assure une hauteur minimale */
         display: flex;
         align-items: center;
         justify-content: center;

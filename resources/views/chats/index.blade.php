@@ -1,3 +1,8 @@
+<?php
+// Les déclarations 'use' doivent être au tout début du fichier Blade,
+// avant tout contenu HTML ou autres directives Blade complexes.
+use Illuminate\Support\Str;
+?>
 @extends('layouts.user')
 
 @section('title', 'Discussions - Jobela RDC')
@@ -156,15 +161,35 @@
             --whatsapp-icon-color: #667781; /* Color for search icon */
         }
 
+        html, body {
+            height: 100%; /* Ensure HTML and BODY take full height */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent general document scrolling */
+        }
+
         body {
             background-color: var(--whatsapp-background);
-            font-family: Arial, sans-serif; /* WhatsApp-like font */
+            font-family: 'Nunito', sans-serif, Arial; /* WhatsApp-like font */
+            display: flex;
+            flex-direction: column;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow: hidden; /* Prevent #app from overflowing */
         }
 
         .content-section {
+            flex-grow: 1; /* Allow content section to take available height */
+            overflow-y: auto; /* Enable scrolling within this section */
             max-width: 800px; /* Limit width for better readability */
             margin: 0 auto; /* Center content */
             padding-top: 15px !important; /* Adjust padding if navbar is fixed */
+            padding-bottom: 80px; /* Space for the floating button */
+            background-color: var(--whatsapp-background); /* Ensure background is consistent */
         }
 
         .whatsapp-heading {
@@ -182,6 +207,7 @@
             background-color: var(--whatsapp-search-bg);
             border: 1px solid var(--whatsapp-search-border);
             margin-bottom: 20px; /* Space below the search bar */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow */
         }
 
         .whatsapp-search-input {
@@ -217,9 +243,10 @@
         }
 
         .conversations-list {
-            background-color: var(--whatsapp-background); /* List background */
+            /* background-color: var(--whatsapp-background); */ /* Removed as items have their own background */
             border-radius: 8px;
             overflow: hidden;
+            margin-top: 10px; /* Slight space after search bar */
         }
 
         .conversation-item {
@@ -228,6 +255,10 @@
             transition: background-color 0.2s ease, transform 0.1s ease;
             cursor: pointer;
             color: inherit; /* Ensures text inherits default color */
+            border-radius: 10px; /* Softer corners */
+            margin-bottom: 8px; /* Space between items */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+            padding: 12px 15px !important; /* More padding */
         }
 
         .conversation-item:last-child {
@@ -246,8 +277,8 @@
 
         /* Avatar image for chat list */
         .avatar-thumbnail-chat-list {
-            width: 58px; /* Larger for conversation list */
-            height: 58px;
+            width: 56px; /* Larger for conversation list */
+            height: 56px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--whatsapp-green-light); /* Green border for image */
@@ -255,13 +286,13 @@
 
         /* Avatar text for chat list */
         .avatar-text-placeholder-chat-list {
-            width: 58px; /* Larger for conversation list */
-            height: 58px;
+            width: 56px; /* Larger for conversation list */
+            height: 56px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem; /* Font size for initials */
+            font-size: 1.3rem; /* Font size for initials */
             font-weight: bold;
             color: white;
             border: 2px solid var(--whatsapp-green-light); /* Green border for text avatar */
@@ -271,7 +302,7 @@
 
         .avatar-text-placeholder-chat-list.group-avatar { /* Specific style for group avatar */
             background-color: var(--whatsapp-green-dark) !important; /* Specific color for groups */
-            font-size: 1.6rem;
+            font-size: 1.5rem;
         }
 
         .conversation-info {
@@ -285,17 +316,18 @@
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: calc(100% - 70px); /* Adjust based on time/badge size */
+            font-size: 1.05rem; /* Slightly larger name */
         }
 
         .conversation-time {
-            font-size: 0.78rem;
+            font-size: 0.75rem; /* Slightly smaller */
             color: var(--whatsapp-text-muted);
             flex-shrink: 0;
             margin-left: 10px;
         }
 
         .conversation-last-message {
-            font-size: 0.9rem;
+            font-size: 0.88rem; /* Slightly smaller for last message */
             color: var(--whatsapp-text-muted);
             white-space: nowrap;
             overflow: hidden;
@@ -307,14 +339,15 @@
 
         .conversation-last-message .fa-check-double {
             color: var(--whatsapp-blue-seen); /* Color for read status */
+            font-size: 0.7rem; /* Smaller checkmark */
         }
 
         /* New styles for unread count badge */
         .unread-count-badge {
             background-color: var(--whatsapp-unread-badge); /* WhatsApp green for new messages */
             color: white;
-            font-size: 0.78rem;
-            padding: 0.3em 0.6em;
+            font-size: 0.75rem; /* Smaller badge text */
+            padding: 0.2em 0.5em; /* Smaller padding */
             line-height: 1;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             font-weight: bold;
@@ -332,6 +365,9 @@
             bottom: 20px;
             right: 20px;
             z-index: 1000;
+            /* For centering on small screens */
+            left: auto; /* Reset left */
+            transform: none; /* Reset transform */
         }
 
         .floating-action-button .btn-whatsapp-send { /* Use the same button class as chat */
@@ -363,26 +399,26 @@
             cursor: pointer;
         }
         .user-avatar-modal {
-            width: 40px;
-            height: 40px;
+            width: 45px; /* Slightly larger in modal */
+            height: 45px;
             border-radius: 50%;
             object-fit: cover;
-            margin-right: 10px;
+            margin-right: 12px; /* More space */
             flex-shrink: 0;
             border: 1px solid #ccc;
         }
         .user-initials-modal {
-            width: 40px;
-            height: 40px;
+            width: 45px; /* Slightly larger in modal */
+            height: 45px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 1.1rem; /* Adjusted font size */
             font-weight: bold;
             color: white;
             background-color: #777;
-            margin-right: 10px;
+            margin-right: 12px; /* More space */
             flex-shrink: 0;
         }
         .modal-dialog-scrollable .modal-body {
@@ -395,6 +431,7 @@
             color: var(--whatsapp-text-dark);
             border-radius: 12px;
             padding: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Consistent shadow */
         }
 
 
@@ -402,6 +439,7 @@
         @media (max-width: 576px) {
             .content-section {
                 padding: 10px;
+                padding-bottom: 70px; /* Adjust for smaller floating button */
             }
 
             .avatar-thumbnail-chat-list, .avatar-text-placeholder-chat-list {
@@ -428,13 +466,21 @@
 
             .floating-action-button {
                 bottom: 15px;
-                right: 15px;
+                right: 50%; /* Center horizontally */
+                transform: translateX(50%); /* Adjust for centering */
             }
 
             .floating-action-button .btn-whatsapp-send {
                 width: 50px;
                 height: 50px;
                 font-size: 1.3rem;
+            }
+
+            .user-avatar-modal, .user-initials-modal {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+                margin-right: 10px;
             }
         }
     </style>
@@ -452,7 +498,14 @@
         function fetchUsers(query = '') {
             userListContainer.innerHTML = '<p class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i> Chargement...</p>';
 
-            fetch(`/chats/search-users?query=${query}`)
+            // Ensure the route is correctly defined in your Laravel application
+            // and accessible via JavaScript.
+            // Assuming window.Laravel.routes.chatsSearchUsers is available from app.blade.php
+            const searchUrl = window.Laravel && window.Laravel.routes && window.Laravel.routes.chatsSearchUsers
+                              ? `${window.Laravel.routes.chatsSearchUsers}?query=${query}`
+                              : `/chats/search-users?query=${query}`; // Fallback if route not defined globally
+
+            fetch(searchUrl)
                 .then(response => response.json())
                 .then(data => {
                     userListContainer.innerHTML = '';
@@ -469,7 +522,8 @@
                                 // Fallback to initials if no profile picture
                                 // Assuming your User model has accessors for initials and avatar_bg_color
                                 const initials = user.initials || (user.name ? user.name.split(' ').map(n => n[0]).join('') : '??').toUpperCase();
-                                const bgColor = user.avatar_bg_color || '#777'; // Fallback color
+                                // Generate a consistent color based on user ID or email if avatar_bg_color is not provided by backend
+                                const bgColor = user.avatar_bg_color || '#' + (user.email || user.id || new Date().getTime().toString()).split('').map(char => char.charCodeAt(0).toString(16)).join('').substring(0, 6);
                                 avatarHtml = `<div class="user-initials-modal" style="background-color: ${bgColor};">${initials}</div>`;
                             }
 
@@ -490,7 +544,10 @@
                                 const userId = this.dataset.userId;
                                 if (userId) {
                                     // Create conversation via POST request
-                                    fetch('/chats/create', {
+                                    // Assuming window.Laravel.routes.chatsCreate is available (or define it)
+                                    const createChatUrl = '/chats/create'; // Direct URL or use a route from window.Laravel.routes if defined
+
+                                    fetch(createChatUrl, {
                                         method: 'POST',
                                         headers: {
                                             'Content-Type': 'application/json',
@@ -505,11 +562,14 @@
                                         } else if (data.redirect_to_existing_chat) {
                                             window.location.href = data.redirect_to_existing_chat; // Redirect to existing chat
                                         } else {
+                                            // Replace alert with a custom modal/toast for better UX
+                                            console.error(data.message || 'Erreur lors de la création de la discussion.');
                                             alert(data.message || 'Erreur lors de la création de la discussion.');
                                         }
                                     })
                                     .catch(error => {
                                         console.error('Error:', error);
+                                        // Replace alert with a custom modal/toast for better UX
                                         alert('Une erreur est survenue lors de la création de la discussion.');
                                     });
                                 }
@@ -541,6 +601,7 @@
         // Event listener for when the modal is shown
         newChatModal.addEventListener('show.bs.modal', function () {
             userSearchInput.value = ''; // Clear search input
+            userListContainer.innerHTML = '<p class="text-center text-muted py-3">Tapez pour rechercher des utilisateurs...</p>'; // Reset message
             fetchUsers(''); // Load all users when modal opens (or first 20/50 etc.)
         });
     });
