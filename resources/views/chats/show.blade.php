@@ -89,6 +89,10 @@ use Illuminate\Support\Str;
                 @php
                     $messageSender = $message->user;
                     $messageSenderAvatarHtml = '';
+                    // Générer une couleur de fond aléatoire basée sur l'ID de l'utilisateur pour une couleur constante
+                    $senderBgColor = '#' . substr(md5($messageSender->email ?? $messageSender->id ?? uniqid()), 0, 6);
+
+
                     $isSenderExternalAvatar = $messageSender->profile_picture && Str::startsWith($messageSender->profile_picture, ['http://', 'https://']);
 
                     if ($messageSender->profile_picture) {
@@ -107,8 +111,7 @@ use Illuminate\Support\Str;
                         } else {
                             $initials = '??';
                         }
-                        $bgColor = '#' . substr(md5($messageSender->email ?? $messageSender->id ?? uniqid()), 0, 6);
-                        $messageSenderAvatarHtml = '<div class="message-sender-avatar-placeholder" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
+                        $messageSenderAvatarHtml = '<div class="message-sender-avatar-placeholder" style="background-color: ' . $senderBgColor . ';">' . $initials . '</div>';
                     }
                 @endphp
 
@@ -120,7 +123,7 @@ use Illuminate\Support\Str;
                     @endif
                     <div class="message-content">
                         @if($conversation->is_group && $message->user_id !== Auth::id())
-                            <div class="message-sender-name" style="color: {{ $message->user->avatar_bg_color ?? '#' . substr(md5($message->user->email ?? $message->user->id ?? uniqid()), 0, 6) }};">
+                            <div class="message-sender-name" style="color: {{ $senderBgColor }};">
                                 {{ $message->user->name }}
                             </div>
                         @endif
@@ -143,7 +146,7 @@ use Illuminate\Support\Str;
 
         {{-- Formulaire d'envoi de message --}}
         <div class="chat-input-area p-3">
-            <form id="messageForm" action="{{ route('chats.sendMessage', $conversation->id) }}" method="POST" class="d-flex align-items-center">
+            <form id="messageForm" action="{{ route('chats.sendMessage', $conversation->id) }}" method="POST" class="d-flex align-items-end"> {{-- Changed align-items-center to align-items-end --}}
                 @csrf
                 <textarea name="body" class="form-control me-2 chat-textarea" placeholder="Tapez votre message..." rows="1" required></textarea>
                 <button type="submit" class="btn btn-whatsapp-send rounded-circle p-2">
@@ -198,42 +201,35 @@ use Illuminate\Support\Str;
                     noMessagesAlert.remove();
                 }
 
-                // Récupérer les données de l'utilisateur authentifié pour l'affichage de l'avatar
-                const authUserId = {{ Auth::id() }};
-                const authUserName = "{{ Auth::user()->name }}";
-                const authUserEmail = "{{ Auth::user()->email }}"; // Pour la génération de couleur
-                const authUserPicture = "{{ Auth::user()->profile_picture }}";
+                // Récupérer les données de l'utilisateur authentifié pour l'affichage de l'avatar et couleur nom
+                const authUser = @json(Auth::user());
+                let authUserAvatarHtml = '';
+                let authUserColor = '#' + CryptoJS.MD5(authUser.email || authUser.id || new Date().getTime().toString()).toString().substring(0, 6);
 
-                let authUserAvatarSrc = '';
-                let authUserInitials = '';
-                let authUserAvatarBgColor = '';
-
-                // Logique pour l'avatar de l'utilisateur authentifié
-                if (authUserPicture) {
-                    const isExternal = authUserPicture.startsWith('http://') || authUserPicture.startsWith('https://');
-                    authUserAvatarSrc = isExternal ? authUserPicture : "{{ asset('storage/') }}" + '/' + authUserPicture;
+                if (authUser.profile_picture) {
+                    const isExternal = authUser.profile_picture.startsWith('http://') || authUser.profile_picture.startsWith('https://');
+                    const avatarSrc = isExternal ? authUser.profile_picture : "{{ asset('storage/') }}" + '/' + authUser.profile_picture;
+                    authUserAvatarHtml = `<img src="${avatarSrc}" alt="Photo de profil" class="message-sender-avatar">`;
                 } else {
-                    if (authUserName) {
-                        const words = authUserName.split(' ');
+                    let initials = '';
+                    if (authUser.name) {
+                        const words = authUser.name.split(' ');
                         words.forEach(word => {
-                            authUserInitials += word.substring(0, 1).toUpperCase();
+                            initials += word.substring(0, 1).toUpperCase();
                         });
-                        if (authUserInitials.length > 2) {
-                            authUserInitials = authUserInitials.substring(0, 2);
+                        if (initials.length > 2) {
+                            initials = initials.substring(0, 2);
                         }
                     } else {
-                        authUserInitials = '??';
+                        initials = '??';
                     }
-                    authUserAvatarBgColor = '#' + authUserEmail.substring(0, 6).split('').map(char => char.charCodeAt(0).toString(16)).join('').substring(0, 6);
-                    if (authUserAvatarBgColor.length < 7) { // Fallback if conversion is too short
-                        authUserAvatarBgColor = '#' + Math.floor(Math.random()*16777215).toString(16);
-                    }
+                    authUserAvatarHtml = `<div class="message-sender-avatar-placeholder" style="background-color: ${authUserColor};">${initials}</div>`;
                 }
 
-
                 const messageTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const isGroup = {{ $conversation->is_group ? 'true' : 'false' }};
 
-                const newMessageHtml = `
+                let newMessageHtml = `
                     <div class="message-bubble sent">
                         <div class="message-content">
                             <p class="mb-0">${messageBody}</p>
@@ -244,6 +240,18 @@ use Illuminate\Support\Str;
                         </div>
                     </div>
                 `;
+
+                // If it's a group and the message is sent by the current user, you might still want to show their name/avatar
+                // but WhatsApp usually doesn't show the sender's avatar for their own sent messages.
+                // However, if you want to explicitly show the sender's name in the bubble for groups:
+                if (isGroup && response.data.message.user_id === authUser.id) {
+                     // This part is for messages *received* from others in a group, not sent by self.
+                     // The `sent` bubble generally doesn't show the sender's name/avatar within itself in WhatsApp.
+                     // The PHP loop already handles displaying name/avatar for *received* group messages.
+                     // No change needed here for sent messages from current user.
+                }
+
+
                 chatMessagesDiv.insertAdjacentHTML('beforeend', newMessageHtml);
 
                 // Nettoyer le textarea
@@ -259,6 +267,15 @@ use Illuminate\Support\Str;
                 alert('Erreur lors de l\'envoi du message. Veuillez réessayer.');
             });
     });
+
+    // Inclure la bibliothèque CryptoJS pour la génération de couleurs (si non déjà présente)
+    // C'est un polyfill pour le MD5 que j'ai utilisé en JS pour être cohérent avec PHP
+    // Si tu utilises déjà une autre méthode pour générer des couleurs, tu peux l'adapter.
+    if (typeof CryptoJS === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
+        document.head.appendChild(script);
+    }
 </script>
 @endpush
 
@@ -270,7 +287,7 @@ use Illuminate\Support\Str;
         --whatsapp-green-light: #128C7E; /* Accent, hover */
         --whatsapp-blue-seen: #34B7F1; /* Double coche bleue */
         --whatsapp-background: #E5DDD5; /* Fond principal de la page (hors chat) */
-        --whatsapp-chat-bg: #ECE5DD; /* Fond du corps de la discussion */
+        --whatsapp-chat-bg: url('https://user-images.githubusercontent.com/15075759/28719142-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Fond du corps de la discussion - image WhatsApp */
         --whatsapp-message-sent: #DCF8C6; /* Couleur bulle message envoyé */
         --whatsapp-message-received: #FFFFFF; /* Couleur bulle message reçu */
         --whatsapp-text-dark: #202C33; /* Texte plus sombre pour lisibilité */
@@ -280,14 +297,18 @@ use Illuminate\Support\Str;
     }
 
     /* Styles généraux pour le corps et l'application */
-    body {
-        background-color: var(--whatsapp-chat-bg); /* Fond spécifique au chat */
+    html, body {
+        height: 100%; /* S'assure que HTML et BODY prennent toute la hauteur */
         margin: 0;
+        padding: 0;
+        overflow: hidden; /* Empêche le défilement général du document */
+    }
+
+    body {
+        background-color: var(--whatsapp-background); /* Fond général, sera supplanté par chat-container si large */
         font-family: 'Nunito', sans-serif, Arial; /* Police WhatsApp-like */
         display: flex;
         flex-direction: column;
-        height: 100vh; /* Utilise 100% de la hauteur de la fenêtre */
-        overflow: hidden; /* Empêche le défilement du body */
     }
 
     #app {
@@ -301,10 +322,11 @@ use Illuminate\Support\Str;
         display: flex;
         flex-direction: column;
         height: 100%; /* Prend toute la hauteur disponible de #app */
-        max-width: 800px; /* Limite la largeur sur grand écran */
+        max-width: 800px; /* Limite la largeur sur grand écran pour ressembler à l'interface web WhatsApp */
         margin: 0 auto; /* Centre le conteneur sur grand écran */
-        background-color: var(--whatsapp-chat-bg);
-        overflow: hidden;
+        background-color: #ECE5DD; /* Couleur de fond par défaut pour le chat-container */
+        overflow: hidden; /* Important pour que le chat-messages défile à l'intérieur */
+        box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Ombre douce sur les côtés sur desktop */
     }
 
     /* En-tête de la discussion */
@@ -313,7 +335,7 @@ use Illuminate\Support\Str;
         color: white;
         flex-shrink: 0; /* Empêche l'en-tête de se rétrécir */
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        padding: 15px; /* Ajuste le padding */
+        padding: 10px 15px; /* Ajuste le padding */
         display: flex;
         align-items: center;
     }
@@ -342,7 +364,7 @@ use Illuminate\Support\Str;
         height: 48px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid var(--whatsapp-green-light); /* Bordure verte */
+        /* border: 2px solid var(--whatsapp-green-light); /* Bordure verte - souvent absente dans le header de WhatsApp */
         display: flex;
         align-items: center;
         justify-content: center;
@@ -350,9 +372,9 @@ use Illuminate\Support\Str;
         font-weight: bold;
         text-transform: uppercase;
         flex-shrink: 0;
+        font-size: 1.1rem;
     }
     .avatar-text-placeholder-small {
-        font-size: 1.1rem;
         background-color: #888; /* Fallback */
     }
     .avatar-group-placeholder {
@@ -371,7 +393,7 @@ use Illuminate\Support\Str;
     }
     .chat-header .chat-title .participants-list {
         font-size: 0.8rem;
-        opacity: 0.8;
+        opacity: 0.9;
         color: rgba(255, 255, 255, 0.8); /* Texte plus clair pour les participants */
     }
 
@@ -394,20 +416,23 @@ use Illuminate\Support\Str;
     .chat-messages {
         flex-grow: 1;
         overflow-y: auto;
-        padding: 10px;
-        background-image: url('https://placehold.co/800x600/e9e8de/a8b0bd/pattern?text='); /* Fond d'écran WhatsApp */
+        padding: 10px 15px; /* Ajuste le padding des messages */
+        background-image: var(--whatsapp-chat-bg); /* Fond d'écran WhatsApp */
         background-size: cover;
         background-position: center;
-        background-attachment: fixed;
+        background-attachment: local; /* change fixed to local so background scrolls with content */
         display: flex;
         flex-direction: column; /* Pour empiler les bulles */
+        scroll-behavior: smooth; /* Défilement doux */
     }
 
     /* Bulles de message */
     .message-bubble {
         display: flex;
-        margin-bottom: 8px;
+        margin-bottom: 6px; /* Espacement plus petit entre les messages */
         align-items: flex-end; /* Aligner les avatars et les bulles en bas */
+        position: relative; /* Pour les pseudo-éléments des pointes */
+        max-width: 85%; /* Plus de place pour le contenu */
     }
 
     /* Avatar du l'expéditeur dans les messages de groupe */
@@ -417,6 +442,7 @@ use Illuminate\Support\Str;
         height: 30px;
         position: relative;
         margin-right: 8px;
+        align-self: flex-start; /* Aligner l'avatar en haut du bloc */
     }
 
     .message-sender-avatar,
@@ -425,7 +451,7 @@ use Illuminate\Support\Str;
         height: 100%;
         border-radius: 50%;
         object-fit: cover;
-        border: 1px solid rgba(0, 0, 0, 0.1);
+        /* border: 1px solid rgba(0, 0, 0, 0.1); */ /* Souvent pas de bordure sur les avatars de message */
         display: flex;
         align-items: center;
         justify-content: center;
@@ -437,40 +463,68 @@ use Illuminate\Support\Str;
     }
 
     .message-bubble .message-content {
-        max-width: 75%;
+        /* max-width: 75%; */ /* max-width est sur .message-bubble */
         padding: 8px 12px;
-        border-radius: 10px;
+        border-radius: 8px; /* Rayon standard des bulles WhatsApp */
         position: relative;
         word-wrap: break-word;
         font-size: 0.95rem;
         line-height: 1.4;
         color: var(--whatsapp-text-dark);
-        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13); /* Ombre douce de WhatsApp */
         display: flex; /* Permet d'aligner le texte et l'heure */
         flex-direction: column;
     }
 
+    /* Pointe des bulles (pseudo-éléments) */
+    .message-bubble.sent .message-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -10px; /* Positionnement de la pointe */
+        border: 6px solid transparent;
+        border-top-color: var(--whatsapp-message-sent);
+        border-right-color: var(--whatsapp-message-sent);
+        /* rotate: 20deg; */ /* Légère rotation pour la pointe WhatsApp */
+    }
+    .message-bubble.received .message-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -10px; /* Positionnement de la pointe */
+        border: 6px solid transparent;
+        border-top-color: var(--whatsapp-message-received);
+        border-left-color: var(--whatsapp-message-received);
+        /* rotate: -20deg; */ /* Légère rotation pour la pointe WhatsApp */
+    }
+
     .message-bubble.sent {
-        justify-content: flex-end;
         align-self: flex-end; /* Pousse la bulle à droite dans le flex-column */
-        flex-direction: row-reverse; /* Pour que l'avatar soit à droite si besoin */
+        background-color: var(--whatsapp-message-sent); /* Pour la bulle entière */
+        border-top-right-radius: 0; /* Pour la pointe */
+        border-bottom-right-radius: 8px; /* Conserver le coin */
     }
 
     .message-bubble.sent .message-content {
-        background-color: var(--whatsapp-message-sent);
-        border-bottom-right-radius: 2px; /* Pointe */
+        background-color: var(--whatsapp-message-sent); /* Assure la couleur de la bulle */
+        border-top-right-radius: 0; /* Pointe sur le coin supérieur droit */
+        border-bottom-right-radius: 8px;
     }
 
     .message-bubble.received {
-        justify-content: flex-start;
         align-self: flex-start; /* Pousse la bulle à gauche dans le flex-column */
+        background-color: var(--whatsapp-message-received); /* Pour la bulle entière */
+        border: 1px solid rgba(0, 0, 0, 0.05); /* Légère bordure pour le reçu */
+        border-top-left-radius: 0; /* Pour la pointe */
+        border-bottom-left-radius: 8px; /* Conserver le coin */
     }
 
     .message-bubble.received .message-content {
-        background-color: var(--whatsapp-message-received);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        border-bottom-left-radius: 2px; /* Pointe */
+        background-color: var(--whatsapp-message-received); /* Assure la couleur de la bulle */
+        border-top-left-radius: 0; /* Pointe sur le coin supérieur gauche */
+        border-bottom-left-radius: 8px;
     }
+
 
     .message-time {
         font-size: 0.7rem;
@@ -478,16 +532,19 @@ use Illuminate\Support\Str;
         text-align: right;
         display: block;
         margin-top: 5px;
+        margin-left: auto; /* Pousse l'heure à droite dans la bulle */
         white-space: nowrap;
-        align-self: flex-end; /* Aligne l'heure à droite dans la bulle */
+        padding-left: 10px; /* Espacement entre le texte et l'heure/coche */
     }
     .message-bubble.received .message-time {
-        align-self: flex-start; /* Aligne l'heure à gauche dans la bulle reçue */
+        margin-left: 0; /* Pas de margin-left auto pour le reçu */
+        margin-right: auto; /* Pousse l'heure à gauche pour le reçu */
     }
 
     /* Icônes de lecture (double-coche) */
     .fa-check-double {
         color: var(--whatsapp-text-muted); /* Non lue (gris) */
+        font-size: 0.65rem; /* Taille de l'icône */
     }
     .fa-check-double.text-whatsapp-blue-seen {
         color: var(--whatsapp-blue-seen); /* Vue (bleu) */
@@ -495,15 +552,15 @@ use Illuminate\Support\Str;
 
     .message-sender-name {
         font-weight: bold;
-        font-size: 0.85rem;
-        margin-bottom: 2px;
+        font-size: 0.8rem; /* Plus petit pour le nom de l'expéditeur */
+        margin-bottom: 4px;
         /* La couleur est définie inline dans le blade pour être dynamique */
     }
 
     /* Zone de saisie du message */
     .chat-input-area {
         background-color: var(--whatsapp-input-bg);
-        border-top: 1px solid var(--whatsapp-border);
+        /* border-top: 1px solid var(--whatsapp-border); */ /* Souvent pas de bordure supérieure sur l'input area */
         flex-shrink: 0;
         padding: 10px 15px;
         display: flex;
@@ -511,23 +568,24 @@ use Illuminate\Support\Str;
     }
 
     .chat-textarea {
-        border-radius: 20px;
+        border-radius: 20px; /* Très arrondi */
         padding: 10px 15px;
-        border: none;
+        border: none; /* Pas de bordure par défaut */
         background-color: #FFF;
         resize: none;
         min-height: 40px;
-        max-height: 100px;
+        max-height: 120px; /* Augmenter un peu la hauteur max */
         overflow-y: auto;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Ombre douce */
         transition: all 0.2s ease;
         flex-grow: 1;
         font-size: 0.95rem;
+        line-height: 1.4;
     }
 
     .chat-textarea:focus {
         box-shadow: 0 0 0 0.25rem rgba(18, 140, 126, 0.25);
-        border-color: var(--whatsapp-green-light);
+        /* border-color: var(--whatsapp-green-light); */ /* Pas de bordure visible au focus sur WhatsApp, juste l'ombre */
         outline: none; /* Supprime l'outline par défaut du navigateur */
     }
 
@@ -566,6 +624,22 @@ use Illuminate\Support\Str;
         border-radius: 10px;
     }
 
+    /* Alertes (pour "Commencez la discussion") */
+    #noMessagesAlert {
+        margin-top: 20px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 8px;
+        padding: 20px;
+        color: var(--whatsapp-text-dark);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    #noMessagesAlert .fas {
+        color: var(--whatsapp-green-light);
+        margin-bottom: 15px;
+    }
+
+
     /* Sur les petits écrans (mobiles) */
     @media (max-width: 768px) {
         .chat-container {
@@ -598,6 +672,9 @@ use Illuminate\Support\Str;
         .chat-header .chat-actions .icon-button {
             font-size: 1.1rem;
             gap: 15px;
+        }
+        .message-bubble {
+            max-width: 90%; /* Occupe plus de largeur sur mobile */
         }
         .message-bubble .message-content {
             font-size: 0.9rem;

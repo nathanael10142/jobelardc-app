@@ -22,7 +22,7 @@
             </div>
         @endif
 
-        {{-- Zone de recherche WhatsApp pour les conversations --}}
+        {{-- WhatsApp-like search area for conversations --}}
         <form action="{{ route('chats.index') }}" method="GET" class="whatsapp-search-form mb-3">
             <div class="input-group">
                 <input type="text" name="search" class="form-control whatsapp-search-input" placeholder="{{ __('Rechercher une discussion...') }}" value="{{ request('search') }}">
@@ -115,6 +115,7 @@
         </div>
     </div>
 
+    {{-- New Chat Modal --}}
     <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
@@ -138,18 +139,18 @@
 
 @push('styles')
     <style>
-        /* Variables WhatsApp (définies globalement ou ici) */
+        /* WhatsApp Variables (defined globally or here) */
         :root {
             --whatsapp-green-dark: #075E54;
             --whatsapp-green-light: #128C7E;
             --whatsapp-blue-seen: #34B7F1;
-            --whatsapp-background: #E5DDD5; /* Fond principal de la page */
-            --whatsapp-card-bg: #FFFFFF; /* Fond des cartes de conversation */
-            --whatsapp-light-hover: #F0F0F0; /* Couleur de survol */
-            --whatsapp-text-dark: #202C33; /* Texte plus sombre pour lisibilité */
-            --whatsapp-text-muted: #667781; /* Gris pour horodatages et messages lus */
-            --whatsapp-border: #E0E0E0; /* Bordure des cartes */
-            --whatsapp-unread-badge: #25D366; /* Couleur du badge non lu */
+            --whatsapp-background: #E5DDD5; /* Main page background */
+            --whatsapp-card-bg: #FFFFFF; /* Conversation card background */
+            --whatsapp-light-hover: #F0F0F0; /* Hover color */
+            --whatsapp-text-dark: #202C33; /* Darker text for readability */
+            --whatsapp-text-muted: #667781; /* Gray for timestamps and read messages */
+            --whatsapp-border: #E0E0E0; /* Card border */
+            --whatsapp-unread-badge: #25D366; /* Unread badge color */
             --whatsapp-search-bg: #F0F2F5; /* Background for search input */
             --whatsapp-search-border: #D1D7DA; /* Border for search input */
             --whatsapp-icon-color: #667781; /* Color for search icon */
@@ -157,13 +158,13 @@
 
         body {
             background-color: var(--whatsapp-background);
-            font-family: Arial, sans-serif; /* Police WhatsApp-like */
+            font-family: Arial, sans-serif; /* WhatsApp-like font */
         }
 
         .content-section {
-            max-width: 800px; /* Limite la largeur pour une meilleure lisibilité */
-            margin: 0 auto; /* Centre le contenu */
-            padding-top: 15px !important; /* Ajuste le padding si la navbar est fixe */
+            max-width: 800px; /* Limit width for better readability */
+            margin: 0 auto; /* Center content */
+            padding-top: 15px !important; /* Adjust padding if navbar is fixed */
         }
 
         .whatsapp-heading {
@@ -171,7 +172,7 @@
             font-weight: 700;
             display: flex;
             align-items: center;
-            margin-bottom: 20px !important; /* Plus d'espace sous le titre */
+            margin-bottom: 20px !important; /* More space below heading */
         }
 
         /* WhatsApp Search Bar Styles (same as listings for consistency) */
@@ -216,25 +217,25 @@
         }
 
         .conversations-list {
-            background-color: var(--whatsapp-background); /* Fond de la liste */
+            background-color: var(--whatsapp-background); /* List background */
             border-radius: 8px;
             overflow: hidden;
         }
 
         .conversation-item {
-            background-color: var(--whatsapp-card-bg); /* Couleur de fond des éléments de conversation */
-            border-bottom: 1px solid var(--whatsapp-border); /* Séparateur léger */
+            background-color: var(--whatsapp-card-bg); /* Conversation item background color */
+            border-bottom: 1px solid var(--whatsapp-border); /* Light separator */
             transition: background-color 0.2s ease, transform 0.1s ease;
             cursor: pointer;
-            color: inherit; /* S'assure que le texte hérite de la couleur par défaut */
+            color: inherit; /* Ensures text inherits default color */
         }
 
         .conversation-item:last-child {
-            border-bottom: none; /* Pas de bordure sur le dernier élément */
+            border-bottom: none; /* No border on the last item */
         }
 
         .conversation-item:hover {
-            background-color: var(--whatsapp-light-hover); /* Couleur de survol */
+            background-color: var(--whatsapp-light-hover); /* Hover color */
             transform: translateY(-1px);
         }
 
@@ -245,31 +246,31 @@
 
         /* Avatar image for chat list */
         .avatar-thumbnail-chat-list {
-            width: 58px; /* Plus grand pour la liste de conversations */
+            width: 58px; /* Larger for conversation list */
             height: 58px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid var(--whatsapp-green-light); /* Bordure verte pour l'image */
+            border: 2px solid var(--whatsapp-green-light); /* Green border for image */
         }
 
         /* Avatar text for chat list */
         .avatar-text-placeholder-chat-list {
-            width: 58px; /* Plus grand pour la liste de conversations */
+            width: 58px; /* Larger for conversation list */
             height: 58px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem; /* Taille de police pour les initiales */
+            font-size: 1.4rem; /* Font size for initials */
             font-weight: bold;
             color: white;
-            border: 2px solid var(--whatsapp-green-light); /* Bordure verte pour l'avatar texte */
+            border: 2px solid var(--whatsapp-green-light); /* Green border for text avatar */
             text-transform: uppercase;
-            background-color: #777; /* Fallback si avatar_bg_color non défini */
+            background-color: #777; /* Fallback if avatar_bg_color not defined */
         }
 
-        .avatar-text-placeholder-chat-list.group-avatar { /* Style spécifique pour l'avatar de groupe */
-            background-color: var(--whatsapp-green-dark) !important; /* Couleur spécifique pour les groupes */
+        .avatar-text-placeholder-chat-list.group-avatar { /* Specific style for group avatar */
+            background-color: var(--whatsapp-green-dark) !important; /* Specific color for groups */
             font-size: 1.6rem;
         }
 
@@ -283,7 +284,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: calc(100% - 70px); /* Ajuster selon la taille de l'heure/badge */
+            max-width: calc(100% - 70px); /* Adjust based on time/badge size */
         }
 
         .conversation-time {
@@ -299,18 +300,18 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 95%; /* S'assurer qu'il ne déborde pas */
-            display: flex; /* Permet d'aligner l'icône "Vous:" */
+            max-width: 95%; /* Ensure it doesn't overflow */
+            display: flex; /* Allows aligning "You:" icon */
             align-items: center;
         }
 
         .conversation-last-message .fa-check-double {
-            color: var(--whatsapp-blue-seen); /* Couleur pour le statut lu */
+            color: var(--whatsapp-blue-seen); /* Color for read status */
         }
 
         /* New styles for unread count badge */
         .unread-count-badge {
-            background-color: var(--whatsapp-unread-badge); /* Vert WhatsApp pour les nouveaux messages */
+            background-color: var(--whatsapp-unread-badge); /* WhatsApp green for new messages */
             color: white;
             font-size: 0.78rem;
             padding: 0.3em 0.6em;
@@ -333,7 +334,7 @@
             z-index: 1000;
         }
 
-        .floating-action-button .btn-whatsapp-send { /* Utilisez la même classe de bouton que le chat */
+        .floating-action-button .btn-whatsapp-send { /* Use the same button class as chat */
             width: 60px;
             height: 60px;
             display: flex;
@@ -342,7 +343,7 @@
             font-size: 1.5rem;
             background-color: var(--whatsapp-green-dark);
             border-color: var(--whatsapp-green-dark);
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2); /* Ombre plus prononcée */
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
         }
 
         .floating-action-button .btn-whatsapp-send:hover {
