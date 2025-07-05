@@ -11,6 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // AJOUTEZ CETTE LIGNE POUR ENREGISTRER TrustProxies au groupe web
+        $middleware->web(append: [
+            \App\Http\Middleware\TrustProxies::class,
+        ]);
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
@@ -18,7 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Le Handler.php est configuré ici dans Laravel 11.
+        // Si vous avez recréé app/Exceptions/Handler.php, il sera utilisé.
     })
     // AJOUT DE LA SECTION withProviders POUR ENREGISTRER LE RouteServiceProvider
     ->withProviders([
@@ -27,4 +33,3 @@ return Application::configure(basePath: dirname(__DIR__))
         // \Spatie\Permission\PermissionServiceProvider::class,
     ])
     ->create();
-
