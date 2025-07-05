@@ -562,8 +562,13 @@
             },
             // NOUVELLE SECTION POUR LES ROUTES
             routes: {
-                chatsSearchUsers: "{{ route('chats.searchUsers') }}"
-                // Vous pouvez ajouter d'autres routes ici si d'autres parties de votre JS en ont besoin
+                chatsSearchUsers: "{{ route('chats.searchUsers') }}",
+                // AJOUTÉ: Routes pour la gestion des appels
+                callsInitiate: "{{ route('calls.initiate') }}",
+                callsAccept: "{{ route('calls.accept') }}",
+                callsReject: "{{ route('calls.reject') }}",
+                callsEnd: "{{ route('calls.end') }}",
+                callsSignal: "{{ route('calls.signal') }}"
             }
         };
         console.log('window.Laravel initialized:', window.Laravel); // AJOUTÉ POUR DEBUG - Vérifiez cet objet dans la console
@@ -593,7 +598,7 @@
                 } else if (currentPath.startsWith('{{ route('calls.index', [], false) }}')) {
                     document.getElementById('tab-calls').classList.add('active');
                 } else if (currentPath.startsWith('{{ route('camera.index', [], false) }}')) {
-                     document.querySelector('.camera-icon').classList.add('active');
+                    document.querySelector('.camera-icon').classList.add('active');
                 } else if (currentPath === '{{ route('home', [], false) }}' || currentPath.startsWith('{{ route('listings.index', [], false) }}')) {
                     // For the home/listings page, no tab might be active or you could activate 'Chats' if it's the default.
                     // For now, no specific tab is highlighted.
