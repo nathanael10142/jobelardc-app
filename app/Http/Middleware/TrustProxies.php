@@ -14,7 +14,7 @@ class TrustProxies extends Middleware
      */
     // We will trust all proxies (**) because Render.com uses dynamic IPs.
     // This is the simplest and most common solution for deployments on Render.
-    protected $proxies = '**';
+    protected $proxies = '*';
 
     /**
      * The headers that should be used to detect proxies.
