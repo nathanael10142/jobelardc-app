@@ -10,7 +10,7 @@ fi
 
 # Vider TOUS les caches Laravel au début pour un état propre
 echo "Clearing ALL Laravel caches for a fresh start..."
-php artisan optimize:clear
+php artisan optimize:clear # Ceci inclut view:clear, cache:clear, config:clear, route:clear
 if [ $? -ne 0 ]; then
     echo "Laravel cache clearing failed! Exiting."
     exit 1
@@ -48,7 +48,7 @@ fi
 # Définir les permissions pour les répertoires de stockage et de cache
 echo "Setting permissions for storage and bootstrap/cache directories..."
 chmod -R 777 storage bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache 
 if [ $? -ne 0 ]; then
     echo "Setting ownership failed! Exiting."
     exit 1
@@ -58,15 +58,6 @@ fi
 echo "Clearing config and application cache specifically for the queue worker..."
 php artisan config:clear
 php artisan cache:clear
-
-# NOUVEAU: Commande de débogage pour vérifier la structure de la table 'jobs'
-echo "--- Checking 'jobs' table schema before starting queue worker ---"
-# Cette commande tentait d'afficher le schéma de la table 'jobs', mais l'option --dump-schema n'existe pas.
-# Nous la commentons pour éviter l'erreur.
-# php artisan db:table jobs --dump-schema || echo "Command 'php artisan db:table jobs --dump-schema' failed. Trying alternative schema check..."
-# Si tu veux vérifier le schéma, il est préférable de te connecter à la DB ou d'utiliser un outil qui supporte cela.
-echo "--- End of 'jobs' table schema check ---"
-
 
 # Démarrer le queue worker en arrière-plan
 echo "Starting Laravel queue worker in background..."
