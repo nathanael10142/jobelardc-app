@@ -14,6 +14,9 @@ use App\Models\User; // Assurez-vous d'importer le modèle User
 |
 */
 
+// THIS LINE IS CRUCIAL FOR THE /broadcasting/auth ENDPOINT
+Broadcast::routes(); // <--- ADD THIS LINE HERE!
+
 // Canal privé pour un utilisateur spécifique pour les appels
 // Seul l'utilisateur avec l'ID correspondant peut écouter ce canal.
 // Le nom du canal côté serveur doit correspondre à celui écouté côté client.
