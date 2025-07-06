@@ -495,94 +495,92 @@ use Illuminate\Support\Str;
         let searchTimeout;
 
         // Function to fetch and display users
-        function fetchUsers(query = '') {
+        async function fetchUsers(query = '') {
             userListContainer.innerHTML = '<p class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i> Chargement...</p>';
 
-            // Ensure the route is correctly defined in your Laravel application
-            // and accessible via JavaScript.
-            // Assuming window.Laravel.routes.chatsSearchUsers is available from app.blade.php
             const searchUrl = window.Laravel && window.Laravel.routes && window.Laravel.routes.chatsSearchUsers
-                              ? `${window.Laravel.routes.chatsSearchUsers}?query=${query}`
-                              : `/chats/search-users?query=${query}`; // Fallback if route not defined globally
+                                ? `${window.Laravel.routes.chatsSearchUsers}?query=${encodeURIComponent(query)}`
+                                : `/chats/search-users?query=${encodeURIComponent(query)}`;
 
-            fetch(searchUrl)
-                .then(response => response.json())
-                .then(data => {
-                    userListContainer.innerHTML = '';
-                    if (data.users && data.users.length > 0) {
-                        data.users.forEach(user => {
-                            let avatarHtml;
-                            const avatarPath = user.profile_picture;
-                            const isExternalAvatar = avatarPath && (avatarPath.startsWith('http://') || avatarPath.startsWith('https://'));
+            try {
+                const response = await fetch(searchUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
 
-                            if (avatarPath) {
-                                const avatarSrc = isExternalAvatar ? avatarPath : `/storage/${avatarPath}`;
-                                avatarHtml = `<img src="${avatarSrc}" alt="Avatar" class="user-avatar-modal">`;
-                            } else {
-                                // Fallback to initials if no profile picture
-                                // Assuming your User model has accessors for initials and avatar_bg_color
-                                const initials = user.initials || (user.name ? user.name.split(' ').map(n => n[0]).join('') : '??').toUpperCase();
-                                // Generate a consistent color based on user ID or email if avatar_bg_color is not provided by backend
-                                const bgColor = user.avatar_bg_color || '#' + (user.email || user.id || new Date().getTime().toString()).split('').map(char => char.charCodeAt(0).toString(16)).join('').substring(0, 6);
-                                avatarHtml = `<div class="user-initials-modal" style="background-color: ${bgColor};">${initials}</div>`;
-                            }
+                // LA CORRECTION MAJEURE ICI : Gérez la structure de la réponse.
+                // Si l'API renvoie un tableau direct, utilisez data.
+                // Si l'API renvoie { users: [...] }, utilisez data.users.
+                const users = Array.isArray(data) ? data : (data.users || []);
 
-                            const listItem = `
-                                <a href="#" class="list-group-item list-group-item-action d-flex align-items-center" data-user-id="${user.id}">
-                                    ${avatarHtml}
-                                    <span class="fw-bold">${user.name}</span>
-                                    <small class="text-muted ms-auto">(${user.user_type === 'employer' ? 'Employeur' : 'Candidat'})</small>
-                                </a>
-                            `;
-                            userListContainer.insertAdjacentHTML('beforeend', listItem);
-                        });
+                userListContainer.innerHTML = ''; // Clear loading message
 
-                        // Add click listener to each user item
-                        userListContainer.querySelectorAll('.list-group-item').forEach(item => {
-                            item.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                const userId = this.dataset.userId;
-                                if (userId) {
-                                    // Create conversation via POST request
-                                    // Assuming window.Laravel.routes.chatsCreate is available (or define it)
-                                    const createChatUrl = '/chats/create'; // Direct URL or use a route from window.Laravel.routes if defined
+                if (users.length > 0) {
+                    users.forEach(user => {
+                        let avatarHtml;
+                        const avatarPath = user.profile_picture;
+                        const isExternalAvatar = avatarPath && (avatarPath.startsWith('http://') || avatarPath.startsWith('https://'));
 
-                                    fetch(createChatUrl, {
+                        if (avatarPath) {
+                            const avatarSrc = isExternalAvatar ? avatarPath : `/storage/${avatarPath}`;
+                            avatarHtml = `<img src="${avatarSrc}" alt="Avatar" class="user-avatar-modal">`;
+                        } else {
+                            const initials = user.initials || (user.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2) : '??').toUpperCase();
+                            const bgColor = user.avatar_bg_color || '#777'; // Fallback if backend doesn't provide it
+                            avatarHtml = `<div class="user-initials-modal" style="background-color: ${bgColor};">${initials}</div>`;
+                        }
+
+                        const listItem = `
+                            <a href="#" class="list-group-item list-group-item-action d-flex align-items-center" data-user-id="${user.id}">
+                                ${avatarHtml}
+                                <span class="fw-bold">${user.name}</span>
+                                <small class="text-muted ms-auto">(${user.user_type === 'employer' ? 'Employeur' : 'Candidat'})</small>
+                            </a>
+                        `;
+                        userListContainer.insertAdjacentHTML('beforeend', listItem);
+                    });
+
+                    // Add click listener to each user item after they are added to the DOM
+                    userListContainer.querySelectorAll('.list-group-item').forEach(item => {
+                        item.addEventListener('click', async function(e) {
+                            e.preventDefault();
+                            const userId = this.dataset.userId;
+                            if (userId) {
+                                const createChatUrl = '/chats/create'; // Direct URL or use a route from window.Laravel.routes if defined
+
+                                try {
+                                    const response = await fetch(createChatUrl, {
                                         method: 'POST',
                                         headers: {
                                             'Content-Type': 'application/json',
                                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                                         },
                                         body: JSON.stringify({ recipient_id: userId })
-                                    })
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        if (data.success && data.conversation_id) {
-                                            window.location.href = `/chats/${data.conversation_id}`; // Redirect to chat show page
-                                        } else if (data.redirect_to_existing_chat) {
-                                            window.location.href = data.redirect_to_existing_chat; // Redirect to existing chat
-                                        } else {
-                                            // Replace alert with a custom modal/toast for better UX
-                                            console.error(data.message || 'Erreur lors de la création de la discussion.');
-                                            alert(data.message || 'Erreur lors de la création de la discussion.');
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error:', error);
-                                        // Replace alert with a custom modal/toast for better UX
-                                        alert('Une erreur est survenue lors de la création de la discussion.');
                                     });
+
+                                    const data = await response.json();
+
+                                    if (data.success && (data.conversation_id || data.redirect_to_existing_chat)) {
+                                        window.location.href = data.redirect_to_existing_chat || `/chats/${data.conversation_id}`;
+                                    } else {
+                                        console.error(data.message || 'Erreur lors de la création de la discussion.');
+                                        alert(data.message || 'Erreur lors de la création de la discussion.');
+                                    }
+                                } catch (error) {
+                                    console.error('Error creating discussion:', error);
+                                    alert('Une erreur est survenue lors de la création de la discussion.');
                                 }
-                            });
+                            }
                         });
-                    } else {
-                        userListContainer.innerHTML = '<p class="text-center text-muted py-3">Aucun utilisateur trouvé.</p>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching users:', error);
-                    userListContainer.innerHTML = '<p class="text-center text-danger py-3">Erreur lors du chargement des utilisateurs.</p>';
-                });
+                    });
+                } else {
+                    userListContainer.innerHTML = '<p class="text-center text-muted py-3">Aucun utilisateur trouvé.</p>';
+                }
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                userListContainer.innerHTML = '<p class="text-center text-danger py-3">Erreur lors du chargement des utilisateurs.</p>';
+            }
         }
 
         // Search input event listener with debounce
@@ -592,7 +590,7 @@ use Illuminate\Support\Str;
             searchTimeout = setTimeout(() => {
                 if (query.length >= 2 || query.length === 0) { // Fetch if 2+ chars or empty to show all
                     fetchUsers(query);
-                } else if (query.length < 2 && userListContainer.innerHTML !== '<p class="text-center text-muted py-3">Tapez pour rechercher des utilisateurs...</p>') {
+                } else if (query.length < 2) {
                     userListContainer.innerHTML = '<p class="text-center text-muted py-3">Tapez au moins 2 caractères pour rechercher des utilisateurs.</p>';
                 }
             }, 300); // 300ms debounce

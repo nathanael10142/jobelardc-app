@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y \
     zip \
     build-essential \
     libonig-dev \
-    # AJOUT : Installer Node.js et npm
     nodejs \
     npm \
     # Nettoie les fichiers de cache apt pour réduire la taille de l'image.
@@ -38,15 +37,12 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 
 # MODIFICATION CRUCIALE : Assurer la configuration correcte d'Apache pour Laravel
 # Mettre à jour le DocumentRoot dans le fichier de configuration par défaut d'Apache
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+# Utilisez 000-default.conf, qui est le fichier de site par défaut d'Apache
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
 
-# Ajouter une directive Directory pour le dossier public pour permettre la réécriture d'URL via .htaccess
-# Cela garantit que les règles de réécriture dans public/.htaccess sont respectées.
-RUN echo '<Directory /var/www/html/public>' >> /etc/apache2/apache2.conf && \
-    echo '    AllowOverride All' >> /etc/apache2/apache2.conf && \
-    echo '    Require all granted' >> /etc/apache2/apache2.conf && \
-    echo '</Directory>' >> /etc/apache2/apache2.conf
+# AJOUT : Assurer AllowOverride All pour le DocumentRoot spécifique dans 000-default.conf
+# Cette commande insère le bloc <Directory> juste après <VirtualHost *:80>
+RUN sed -i '/<VirtualHost \*:80>/a\ \ \ \ <Directory ${APACHE_DOCUMENT_ROOT}>\n\ \ \ \ \ \ \ \ AllowOverride All\n\ \ \ \ \ \ \ \ Require all granted\n\ \ \ \ </Directory>' /etc/apache2/sites-available/000-default.conf
 
 # Définir le répertoire de travail par défaut pour les commandes futures dans le conteneur.
 WORKDIR /var/www/html
@@ -97,5 +93,5 @@ RUN chmod +x /var/www/html/start.sh
 EXPOSE 80
 
 # Définir la commande d'entrée principale pour le conteneur
-# Ici, nous lançons Apache en mode foreground.
-CMD ["apache2ctl", "-D", "FOREGROUND"]
+# Utilise votre script start.sh comme point d'entrée
+CMD ["/var/www/html/start.sh"]
