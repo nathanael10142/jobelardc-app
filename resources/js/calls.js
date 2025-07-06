@@ -2,15 +2,53 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
+// Importe Axios si ce fichier est le point d'entrée principal pour Axios
+// Si Axios est configuré ailleurs via un 'bootstrap.js', assurez-vous que cette configuration est effectuée AVANT l'initialisation de Echo.
+// Si ce n'est pas déjà fait, ajoutez ceci (ou vérifiez dans votre 'bootstrap.js' si vous en avez un)
+// import axios from 'axios';
+// window.axios = axios;
+
+
 // Rend Pusher globalement disponible pour Echo
 window.Pusher = Pusher;
+
+// --- DÉBUT DES AJOUTS POUR GÉRER LE CSRF ET LES COOKIES DE SESSION ---
+
+// 1. Récupérer le token CSRF de la balise meta dans le HTML
+const csrfToken = document.head.querySelector('meta[name="csrf-token"]');
+
+// 2. Configurer Axios pour envoyer automatiquement le token CSRF et les cookies
+if (window.axios) { // S'assurer que axios est déjà défini globalement
+    if (csrfToken) {
+        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken.content;
+    } else {
+        console.error('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
+    }
+    // Permet à Axios d'envoyer les cookies (nécessaire pour l'authentification de session Laravel)
+    window.axios.defaults.withCredentials = true; // <--- AJOUT CRUCIAL ICI
+    console.log('Axios configured with CSRF token and withCredentials.');
+} else {
+    console.warn('Axios is not defined globally. Ensure it is imported and set to window.axios before this script.');
+}
+
+// --- FIN DES AJOUTS POUR GÉRER LE CSRF ET LES COOKIES DE SESSION ---
+
 
 // Initialise Laravel Echo
 window.Echo = new Echo({
     broadcaster: 'pusher',
     key: import.meta.env.VITE_PUSHER_APP_KEY, // Récupère la clé depuis .env via Vite/Mix
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER, // Récupère le cluster
-    forceTLS: true // Force la connexion sécurisée (HTTPS)
+    forceTLS: true, // Force la connexion sécurisée (HTTPS)
+    // --- AJOUTS SPÉCIFIQUES À ECHO POUR L'AUTHENTIFICATION ---
+    authEndpoint: '/broadcasting/auth', // S'assurer que le endpoint est bien celui-ci (par défaut, mais explicite c'est mieux)
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': csrfToken ? csrfToken.content : '', // Passe le token CSRF à Echo
+        },
+    },
+    withCredentials: true, // <--- AJOUT CRUCIAL ICI POUR ECHO
+    // --- FIN DES AJOUTS SPÉCIFIQUES À ECHO ---
 });
 
 console.log('Laravel Echo initialized for Pusher.');
@@ -201,6 +239,8 @@ async function sendSignal(type, payload, receiverId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                // Le CSRF-TOKEN est déjà configuré globalement pour axios.fetch utilise aussi les headers.
+                // Re-confirmation pour fetch si pas via axios:
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                 'Accept': 'application/json',
             },
@@ -614,6 +654,7 @@ async function loadUsersForCall() {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
+                // Ajoutez le CSRF-TOKEN aussi pour les requêtes fetch explicites si axios.defaults n'est pas utilisé
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
         });
