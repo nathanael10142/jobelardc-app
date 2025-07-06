@@ -567,22 +567,21 @@
 
 @push('scripts')
 <script>
-    // Ce script est maintenant très minimal, car la plupart de la logique est dans calls.js
     document.addEventListener('DOMContentLoaded', function() {
-        // La logique setActiveLink peut rester ici si elle est spécifique à cette vue.
+        // ... (ton code setActiveLink existant ici, inchangé) ...
         const currentPath = window.location.pathname;
         function setActiveLink() {
             document.querySelectorAll('.whatsapp-tabs .tab-item').forEach(item => item.classList.remove('active'));
             document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => item.classList.remove('active'));
 
             if (currentPath.startsWith('{{ route('chats.index', [], false) }}')) {
-                document.getElementById('tab-chats').classList.add('active');
+                document.getElementById('tab-chats')?.classList.add('active'); // Utilise l'opérateur optionnel chaining
             } else if (currentPath.startsWith('{{ route('status.index', [], false) }}')) {
-                document.getElementById('tab-status').classList.add('active');
+                document.getElementById('tab-status')?.classList.add('active');
             } else if (currentPath.startsWith('{{ route('calls.index', [], false) }}')) {
-                document.getElementById('tab-calls').classList.add('active');
+                document.getElementById('tab-calls')?.classList.add('active');
             } else if (currentPath.startsWith('{{ route('camera.index', [], false) }}')) {
-                document.querySelector('.camera-icon').classList.add('active');
+                document.querySelector('.camera-icon')?.classList.add('active');
             } else if (currentPath === '{{ route('home', [], false) }}' || currentPath.startsWith('{{ route('listings.index', [], false) }}')) {
                 // No specific tab active for home/listings
             }
@@ -603,6 +602,13 @@
         const selectedContactIdInput = document.getElementById('selectedContactId');
         const startCallButton = document.getElementById('startCallButton');
         const clearSearchButton = document.getElementById('clearSearchButton');
+
+        // Vérification de l'existence des éléments avant de continuer
+        if (!initiateCallModal || !contactSearchInput || !contactListForCall || !selectedContactIdInput || !startCallButton || !clearSearchButton) {
+            console.error("Un ou plusieurs éléments de la modale d'appel n'ont pas été trouvés. Le script ne peut pas s'initialiser.");
+            return; // Arrête l'exécution du script si les éléments clés sont manquants
+        }
+
 
         let allUsers = []; // Pour stocker tous les utilisateurs chargés
 
@@ -632,24 +638,30 @@
             contactListForCall.innerHTML = '<p class="text-muted text-center p-2"><i class="fas fa-spinner fa-spin me-2"></i> Chargement des contacts...</p>';
             try {
                 // Adaptez cette URL à votre endpoint de recherche d'utilisateurs
-                // Il est probable que ce soit la même que pour la recherche de messages si tu as une telle fonctionnalité.
                 const response = await fetch(`/chats/search-users?search=${encodeURIComponent(query)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const users = await response.json();
-                allUsers = users; // Stocke la liste complète
-                displayContacts(users);
+                const data = await response.json(); // Tente de parser en JSON
+
+                // Vérifie si la donnée est un tableau avant d'appeler forEach
+                if (Array.isArray(data)) {
+                    allUsers = data; // Stocke la liste complète
+                    displayContacts(allUsers);
+                } else {
+                    console.error("L'API n'a pas renvoyé un tableau d'utilisateurs:", data);
+                    contactListForCall.innerHTML = '<p class="text-danger text-center p-2"><i class="fas fa-exclamation-triangle me-2"></i> Réponse invalide du serveur.</p>';
+                }
             } catch (error) {
                 console.error('Erreur lors du chargement des contacts:', error);
-                contactListForCall.innerHTML = '<p class="text-danger text-center p-2"><i class="fas fa-exclamation-triangle me-2"></i> Erreur lors du chargement des contacts.</p>';
+                contactListForCall.innerHTML = '<p class="text-danger text-center p-2"><i class="fas fa-exclamation-triangle me-2"></i> Erreur lors du chargement des contacts: ' + error.message + '</p>';
             }
         }
 
         // Fonction pour afficher les contacts
         function displayContacts(users) {
-            contactListForCall.innerHTML = '';
-            if (users.length === 0) {
+            contactListForCall.innerHTML = ''; // Vide la liste existante
+            if (!users || users.length === 0) { // Vérifie si 'users' est vide ou non défini
                 contactListForCall.innerHTML = '<p class="text-muted text-center p-2">Aucun contact trouvé.</p>';
                 startCallButton.disabled = true;
                 selectedContactIdInput.value = '';
@@ -658,7 +670,9 @@
 
             users.forEach(user => {
                 // Exclure l'utilisateur actuel si nécessaire
-                if (user.id === {{ Auth::id() }}) { // Assurez-vous que l'utilisateur est authentifié
+                // Assure-toi que Auth::id() est disponible et rendu correctement
+                // {{ Auth::id() }} est une valeur Blade et sera remplacée au rendu du HTML
+                if (user.id === {{ Auth::id() ?? 'null' }}) {
                     return;
                 }
 
@@ -726,15 +740,14 @@
             const callType = document.querySelector('input[name="call_type"]:checked').value;
 
             if (receiverId) {
-                // Ici, tu déclencherais ton appel
                 console.log(`Tentative de démarrer un appel ${callType} avec l'utilisateur ID: ${receiverId}`);
-                // Fermer la modale
                 const modal = bootstrap.Modal.getInstance(initiateCallModal);
-                modal.hide();
+                if (modal) modal.hide();
 
                 // TODO: Appeler ta fonction JavaScript qui initie l'appel WebRTC/Pusher
-                // Par exemple: initiateCall(receiverId, callType);
                 // Tu devras t'assurer que cette fonction est globale ou accessible ici.
+                // Exemple: window.initiateCall(receiverId, callType);
+                // Ou si tu as un objet global pour tes fonctions d'appel: CallManager.initiate(receiverId, callType);
             } else {
                 alert('Veuillez sélectionner un contact.');
             }
@@ -752,8 +765,6 @@
             }
             return (hash >>> 0).toString(16); // Convert to unsigned hex
         }
-
-        // Fin de la logique pour la modale d'initiation d'appel
     });
 </script>
 @endpush
