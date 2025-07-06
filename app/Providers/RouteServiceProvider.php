@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -14,7 +15,7 @@ class RouteServiceProvider extends ServiceProvider
      *
      * @var string
      */
-    public const HOME = '/'; // Assurez-vous que cette ligne est 'public const HOME = '/';'
+    public const HOME = '/';
 
     /**
      * Define your route model bindings, pattern filters, and other route configuration.
@@ -23,8 +24,10 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->configureRateLimiting();
 
+        // Enregistre les routes nécessaires pour l'authentification des canaux de diffusion (Broadcasting)
+        Broadcast::routes(['middleware' => ['auth']]);
+
         $this->routes(function () {
-            // DÉCOMMENTEZ CES LIGNES POUR CHARGER routes/api.php
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
@@ -39,8 +42,11 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting(): void
     {
-        // Vous pouvez ajouter ici la configuration de vos limiteurs de débit
-        // Par exemple, pour l'API :
+        // Exemple à activer si vous voulez limiter les appels à l'API
+        // use Illuminate\Cache\RateLimiting\Limit;
+        // use Illuminate\Http\Request;
+        // use Illuminate\Support\Facades\RateLimiter;
+
         // RateLimiter::for('api', function (Request $request) {
         //     return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         // });
