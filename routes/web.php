@@ -206,3 +206,10 @@ Route::middleware(['auth'])->group(function () {
         "<h1>Redirection de test : Si vous voyez ceci, la redirection fonctionne bien.</h1>"
     )->name('redirection-test');
 });
+Route::post('/broadcasting/auth', function (Request $request) {
+    return response()->json([
+        'message' => '✅ Laravel a bien reçu la requête POST sur /broadcasting/auth',
+        'user_id' => optional($request->user())->id,
+        'headers' => $request->headers->all(),
+    ]);
+});
