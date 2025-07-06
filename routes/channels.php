@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Broadcast;
 use App\Models\User;
+use Illuminate\Support\Facades\Log; // <-- Ajoutez cette ligne
 
 /*
 |--------------------------------------------------------------------------
@@ -15,10 +16,15 @@ use App\Models\User;
 
 // Canal privé pour les appels (WebRTC, etc.)
 Broadcast::channel('calls.{userId}', function (User $user, $userId) {
-    return (int) $user->id === (int) $userId;
+    // Ajout de logs pour le débogage
+    Log::info("Authorization attempt for channel 'calls.{$userId}'.");
+    if ($user) {
+        Log::info("Authenticated user ID: {$user->id}. Channel ID: {$userId}.");
+        return (int) $user->id === (int) $userId;
+    } else {
+        Log::warning("No authenticated user found for channel 'calls.{$userId}'.");
+        return false; // L'utilisateur n'est pas authentifié
+    }
 });
 
-// Autres canaux possibles
-// Broadcast::channel('private-chat.{userId}', function (User $user, $userId) {
-//     return (int) $user->id === (int) $userId;
-// });
+// Autres canaux possibles...
