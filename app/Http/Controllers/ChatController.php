@@ -90,7 +90,7 @@ class ChatController extends Controller
      * Stocke un nouveau message dans une conversation.
      * Cette méthode est renommée de 'store' à 'sendMessage' pour correspondre à la route.
      */
-    public function sendMessage(Request $request, Conversation $conversation) // <-- CHANGEMENT : 'store' devient 'sendMessage'
+    public function sendMessage(Request $request, Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
             return response()->json(['error' => 'Accès non autorisé à cette discussion.'], 403);
@@ -118,7 +118,7 @@ class ChatController extends Controller
      * Récupère les messages d'une conversation spécifique pour l'API.
      * Nouvelle méthode pour correspondre à la route 'getMessages'.
      */
-    public function getMessages(Conversation $conversation) // <-- NOUVELLE MÉTHODE : 'getMessages'
+    public function getMessages(Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
             return response()->json(['error' => 'Accès non autorisé à cette discussion.'], 403);
@@ -171,7 +171,8 @@ class ChatController extends Controller
             $user->avatar_bg_color = $colors[$user->id % count($colors)];
         });
 
-        return response()->json(['users' => $users]);
+        // LIGNE CORRIGÉE : Renvoie directement le tableau d'utilisateurs
+        return response()->json($users);
     }
 
     /**

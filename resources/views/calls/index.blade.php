@@ -565,6 +565,10 @@
 </style>
 @endpush
 
+{{-- resources/views/calls/index.blade.php --}}
+
+{{-- ... (le reste de votre HTML Blade) ... --}}
+
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -575,7 +579,7 @@
             document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => item.classList.remove('active'));
 
             if (currentPath.startsWith('{{ route('chats.index', [], false) }}')) {
-                document.getElementById('tab-chats')?.classList.add('active'); // Utilise l'opérateur optionnel chaining
+                document.getElementById('tab-chats')?.classList.add('active');
             } else if (currentPath.startsWith('{{ route('status.index', [], false) }}')) {
                 document.getElementById('tab-status')?.classList.add('active');
             } else if (currentPath.startsWith('{{ route('calls.index', [], false) }}')) {
@@ -596,20 +600,8 @@
         setActiveLink();
 
         // --- Logique pour la modale d'initiation d'appel ---
-        const initiateCallModal = document.getElementById('initiateCallModal');
-        const contactSearchInput = document.getElementById('contactSearchInput');
-        const contactListForCall = document.getElementById('contactListForCall');
-        const selectedContactIdInput = document.getElementById('selectedContactId');
-        const startCallButton = document.getElementById('startCallButton');
-        const clearSearchButton = document.getElementById('clearSearchButton');
-
-        // Vérification de l'existence des éléments avant de continuer
-        if (!initiateCallModal || !contactSearchInput || !contactListForCall || !selectedContactIdInput || !startCallButton || !clearSearchButton) {
-            console.error("Un ou plusieurs éléments de la modale d'appel n'ont pas été trouvés. Le script ne peut pas s'initialiser.");
-            return; // Arrête l'exécution du script si les éléments clés sont manquants
-        }
-
-
+        // Déplace la récupération des éléments à l'intérieur de l'écouteur de la modale pour s'assurer qu'ils sont montés
+        let initiateCallModal, contactSearchInput, contactListForCall, selectedContactIdInput, startCallButton, clearSearchButton;
         let allUsers = []; // Pour stocker tous les utilisateurs chargés
 
         // Fonction pour formater l'avatar
@@ -627,7 +619,7 @@
                 } else {
                     initials = '??';
                 }
-                const bgColor = '#' + (user.email ? md5(user.email).substring(0, 6) : (user.id ? md5(user.id.toString()).substring(0, 6) : 'cccccc')); // Assurez-vous d'avoir une fonction md5 ou un polyfill
+                const bgColor = '#' + (user.email ? md5(user.email).substring(0, 6) : (user.id ? md5(user.id.toString()).substring(0, 6) : 'cccccc'));
                 avatarHtml = `<div class="avatar-text-placeholder" style="background-color: ${bgColor};">${initials}</div>`;
             }
             return avatarHtml;
@@ -635,22 +627,29 @@
 
         // Fonction pour charger les contacts
         async function loadContacts(query = '') {
+            if (!contactListForCall) {
+                console.error("contactListForCall n'est pas défini lors du chargement des contacts.");
+                return;
+            }
             contactListForCall.innerHTML = '<p class="text-muted text-center p-2"><i class="fas fa-spinner fa-spin me-2"></i> Chargement des contacts...</p>';
             try {
-                // Adaptez cette URL à votre endpoint de recherche d'utilisateurs
-                const response = await fetch(`/chats/search-users?search=${encodeURIComponent(query)}`);
+                const response = await fetch(`/chats/search-users?query=${encodeURIComponent(query)}`); // Correction: Utilisez 'query' au lieu de 'search'
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const data = await response.json(); // Tente de parser en JSON
+                const data = await response.json();
 
-                // Vérifie si la donnée est un tableau avant d'appeler forEach
-                if (Array.isArray(data)) {
-                    allUsers = data; // Stocke la liste complète
+                // LA CORRECTION MAJEURE ICI : Assurez-vous de gérer la structure de la réponse.
+                // Si l'API renvoie { users: [...] }, utilisez data.users
+                // Si l'API renvoie [...] directement, utilisez data
+                const users = Array.isArray(data) ? data : (data.users || []); // Tente de récupérer soit le tableau direct, soit la propriété 'users', sinon un tableau vide
+
+                if (Array.isArray(users)) {
+                    allUsers = users;
                     displayContacts(allUsers);
                 } else {
-                    console.error("L'API n'a pas renvoyé un tableau d'utilisateurs:", data);
-                    contactListForCall.innerHTML = '<p class="text-danger text-center p-2"><i class="fas fa-exclamation-triangle me-2"></i> Réponse invalide du serveur.</p>';
+                    console.error("L'API n'a pas renvoyé un tableau d'utilisateurs valide après tentative de conversion:", data);
+                    contactListForCall.innerHTML = '<p class="text-danger text-center p-2"><i class="fas fa-exclamation-triangle me-2"></i> Réponse invalide du serveur (format incorrect).</p>';
                 }
             } catch (error) {
                 console.error('Erreur lors du chargement des contacts:', error);
@@ -660,8 +659,12 @@
 
         // Fonction pour afficher les contacts
         function displayContacts(users) {
-            contactListForCall.innerHTML = ''; // Vide la liste existante
-            if (!users || users.length === 0) { // Vérifie si 'users' est vide ou non défini
+            if (!contactListForCall || !selectedContactIdInput || !startCallButton) {
+                console.error("Éléments de la modale non définis lors de l'affichage des contacts.");
+                return;
+            }
+            contactListForCall.innerHTML = '';
+            if (!users || users.length === 0) {
                 contactListForCall.innerHTML = '<p class="text-muted text-center p-2">Aucun contact trouvé.</p>';
                 startCallButton.disabled = true;
                 selectedContactIdInput.value = '';
@@ -669,9 +672,6 @@
             }
 
             users.forEach(user => {
-                // Exclure l'utilisateur actuel si nécessaire
-                // Assure-toi que Auth::id() est disponible et rendu correctement
-                // {{ Auth::id() }} est une valeur Blade et sera remplacée au rendu du HTML
                 if (user.id === {{ Auth::id() ?? 'null' }}) {
                     return;
                 }
@@ -688,11 +688,9 @@
 
                 listItem.addEventListener('click', function(e) {
                     e.preventDefault();
-                    // Désélectionner tous les autres
                     document.querySelectorAll('#contactListForCall .list-group-item').forEach(item => {
                         item.classList.remove('active');
                     });
-                    // Sélectionner celui-ci
                     listItem.classList.add('active');
                     selectedContactIdInput.value = user.id;
                     startCallButton.disabled = false;
@@ -700,71 +698,150 @@
             });
         }
 
-        // Gestion de l'ouverture de la modale
-        initiateCallModal.addEventListener('show.bs.modal', function () {
-            loadContacts(); // Charge tous les contacts au début
-            contactSearchInput.value = ''; // Réinitialise la recherche
-            selectedContactIdInput.value = ''; // Réinitialise le contact sélectionné
-            startCallButton.disabled = true; // Désactive le bouton au début
-            document.querySelectorAll('#contactListForCall .list-group-item').forEach(item => item.classList.remove('active')); // Désélectionne tout
+        // Gérer l'ouverture de la modale
+        document.getElementById('initiateCallModal')?.addEventListener('show.bs.modal', function () {
+            // Assurez-vous que les éléments sont disponibles ici
+            initiateCallModal = this;
+            contactSearchInput = document.getElementById('contactSearchInput');
+            contactListForCall = document.getElementById('contactListForCall');
+            selectedContactIdInput = document.getElementById('selectedContactId');
+            startCallButton = document.getElementById('startCallButton');
+            clearSearchButton = document.getElementById('clearSearchButton');
+
+            // Vérification après récupération
+            if (!contactSearchInput || !contactListForCall || !selectedContactIdInput || !startCallButton || !clearSearchButton || !document.getElementById('initiateCallForm')) {
+                console.error("Un ou plusieurs éléments essentiels de la modale ne sont pas trouvés lors de l'ouverture.");
+                // Optionnel: Désactiver le bouton d'ouverture de la modale ou afficher un message d'erreur à l'utilisateur
+                return;
+            }
+
+            loadContacts();
+            contactSearchInput.value = '';
+            selectedContactIdInput.value = '';
+            startCallButton.disabled = true;
+            document.querySelectorAll('#contactListForCall .list-group-item').forEach(item => item.classList.remove('active'));
+
+            // Attacher les écouteurs d'événements SEARCH et CLEAR une seule fois
+            if (!contactSearchInput.hasAttribute('data-listeners-attached')) {
+                contactSearchInput.addEventListener('keyup', handleSearchInput);
+                contactSearchInput.setAttribute('data-listeners-attached', 'true');
+            }
+            if (!clearSearchButton.hasAttribute('data-listeners-attached')) {
+                clearSearchButton.addEventListener('click', handleClearSearch);
+                clearSearchButton.setAttribute('data-listeners-attached', 'true');
+            }
+            const initiateCallForm = document.getElementById('initiateCallForm');
+            if (!initiateCallForm.hasAttribute('data-listeners-attached')) {
+                initiateCallForm.addEventListener('submit', handleInitiateCallSubmit);
+                initiateCallForm.setAttribute('data-listeners-attached', 'true');
+            }
         });
 
-        // Gestion de la recherche en temps réel (débounce pour éviter trop de requêtes)
         let searchTimeout;
-        contactSearchInput.addEventListener('keyup', function() {
+        function handleSearchInput() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
-                const query = this.value.trim();
-                // Si la recherche est vide, réafficher tous les utilisateurs, sinon filtrer
+                const query = contactSearchInput.value.trim();
+                // Si la requête est vide, réinitialise la liste complète, sinon filtre
                 if (query === '') {
-                    displayContacts(allUsers); // Affiche tous les utilisateurs précédemment chargés
+                    displayContacts(allUsers);
                 } else {
                     const filteredUsers = allUsers.filter(user =>
-                        user.name.toLowerCase().includes(query.toLowerCase())
+                        user.name.toLowerCase().includes(query.toLowerCase()) ||
+                        (user.email && user.email.toLowerCase().includes(query.toLowerCase()))
                     );
                     displayContacts(filteredUsers);
                 }
-            }, 300); // Débounce de 300ms
-        });
+            }, 300);
+        }
 
-        // Bouton pour vider la recherche
-        clearSearchButton.addEventListener('click', function() {
-            contactSearchInput.value = '';
-            displayContacts(allUsers); // Réaffiche tous les utilisateurs
-        });
+        function handleClearSearch() {
+            if (contactSearchInput) {
+                contactSearchInput.value = '';
+                displayContacts(allUsers);
+            }
+        }
 
-        // Gérer le formulaire de démarrage d'appel
-        document.getElementById('initiateCallForm').addEventListener('submit', function(e) {
+        function handleInitiateCallSubmit(e) {
             e.preventDefault();
-            const receiverId = selectedContactIdInput.value;
-            const callType = document.querySelector('input[name="call_type"]:checked').value;
+            const receiverId = selectedContactIdInput?.value; // Utilise optional chaining
+            const callTypeElement = document.querySelector('input[name="call_type"]:checked');
+            const callType = callTypeElement ? callTypeElement.value : null;
 
-            if (receiverId) {
+            if (receiverId && callType) {
                 console.log(`Tentative de démarrer un appel ${callType} avec l'utilisateur ID: ${receiverId}`);
                 const modal = bootstrap.Modal.getInstance(initiateCallModal);
                 if (modal) modal.hide();
 
-                // TODO: Appeler ta fonction JavaScript qui initie l'appel WebRTC/Pusher
-                // Tu devras t'assurer que cette fonction est globale ou accessible ici.
-                // Exemple: window.initiateCall(receiverId, callType);
-                // Ou si tu as un objet global pour tes fonctions d'appel: CallManager.initiate(receiverId, callType);
+                // Ici, vous devrez intégrer votre logique d'appel WebRTC.
+                // Par exemple, vous pourriez déclencher un événement global ou appeler une fonction définie ailleurs.
+                // Exemple: window.startCall(receiverId, callType);
+                alert(`Fonctionnalité d'appel à implémenter pour l'appel ${callType} à l'utilisateur ${receiverId}.`); // Placeholder
             } else {
-                alert('Veuillez sélectionner un contact.');
+                alert('Veuillez sélectionner un contact et un type d\'appel.');
             }
-        });
+        }
 
-        // Polyfill basique pour MD5 si tu n'as pas de bibliothèque JS pour ça (pour les avatars par défaut)
+        // Polyfill basique pour MD5 (inchangé - assurez-vous qu'il est défini quelque part si `md5` est utilisé ailleurs)
         function md5(string) {
-            // Pas une vraie implémentation MD5 sécurisée, juste pour générer un hash visuel.
-            // Pour une vraie sécurité, utilise une bibliothèque crypto ou ne le fais pas côté client.
             let hash = 0;
             for (let i = 0; i < string.length; i++) {
                 const char = string.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
-                hash |= 0; // Convert to 32bit integer
+                hash |= 0;
             }
-            return (hash >>> 0).toString(16); // Convert to unsigned hex
+            return (hash >>> 0).toString(16);
         }
+
+        // --- Logique Laravel Echo pour les appels ---
+        // Assurez-vous que window.Laravel.user est défini et contient l'ID de l'utilisateur authentifié
+        if (window.Laravel && window.Laravel.user && window.Laravel.user.id) {
+            const userId = window.Laravel.user.id;
+            console.log('Laravel Echo initialized for Pusher.');
+            // Écoute du canal privé de l'utilisateur pour les événements d'appel
+            Echo.private(`calls.${userId}`)
+                .listen('CallInitiated', (e) => {
+                    console.log('CallInitiated event received:', e);
+                    // Logique pour afficher la modale d'appel entrant
+                    alert(`Appel ${e.call_type} entrant de ${e.caller.name}!`);
+                    // Ici, vous afficherez votre modale d'appel entrant
+                    // et fournirez les options pour accepter/rejeter.
+                })
+                .listen('CallAccepted', (e) => {
+                    console.log('CallAccepted event received:', e);
+                    alert(`Appel accepté par ${e.receiver.name}!`);
+                    // Logique pour démarrer l'appel réel (WebRTC)
+                })
+                .listen('CallRejected', (e) => {
+                    console.log('CallRejected event received:', e);
+                    alert(`Appel rejeté par ${e.receiver.name}.`);
+                    // Logique pour informer l'appelant que l'appel a été rejeté
+                })
+                .listen('CallEnded', (e) => {
+                    console.log('CallEnded event received:', e);
+                    alert(`Appel terminé.`);
+                    // Logique pour mettre fin à l'appel WebRTC et nettoyer l'interface
+                })
+                .listen('CallSignal', (e) => {
+                    console.log('CallSignal event received:', e);
+                    // Gérer les messages de signalisation WebRTC (offer, answer, ICE candidates)
+                    // Cette partie dépendra de votre implémentation WebRTC (PeerConnection, etc.)
+                    // alert(`Signal ${e.type} reçu de ${e.sender.name}.`); // Pour le débogage
+                })
+                .error((error) => {
+                    console.error('Pusher channel error:', error);
+                    if (error.type === 'AuthError' && error.status === 404) {
+                        console.error("Erreur d'authentification Pusher: La route /broadcasting/auth est introuvable. Veuillez vérifier votre configuration Laravel et le déploiement.");
+                    }
+                });
+
+            console.log(`Listening for call events on private-calls.${userId}`);
+        } else {
+            console.warn('window.Laravel.user ou son ID non défini. Impossible d\'initialiser Laravel Echo pour les appels.');
+        }
+
+        console.log('Main application JavaScript loaded.');
     });
 </script>
 @endpush
+
