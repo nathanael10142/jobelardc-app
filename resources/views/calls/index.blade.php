@@ -147,11 +147,16 @@
                 <p>Sélectionnez un contact pour démarrer un appel audio ou vidéo.</p>
                 <form id="initiateCallForm">
                     <div class="mb-3">
-                        <label for="contactSelect" class="form-label">Sélectionner un contact:</label>
-                        <select class="form-select" id="contactSelect" name="receiver_id">
-                            <option value="">Chargement des contacts...</option>
-                            {{-- Les options seront chargées via JS --}}
-                        </select>
+                        <label for="contactSearchInput" class="form-label">Rechercher un contact:</label>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control whatsapp-search-input" id="contactSearchInput" placeholder="Rechercher...">
+                            <button class="btn whatsapp-search-btn" type="button" id="clearSearchButton"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="list-group" id="contactListForCall">
+                            {{-- Les contacts seront chargés ici dynamiquement --}}
+                            <p class="text-muted text-center p-2">Commencez à taper pour rechercher des contacts...</p>
+                        </div>
+                        <input type="hidden" name="receiver_id" id="selectedContactId">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Type d'appel:</label>
@@ -167,7 +172,7 @@
                         </div>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-whatsapp-primary"><i class="fas fa-phone-volume me-2"></i> Démarrer l'Appel</button>
+                        <button type="submit" class="btn btn-whatsapp-primary" id="startCallButton" disabled><i class="fas fa-phone-volume me-2"></i> Démarrer l'Appel</button>
                     </div>
                 </form>
             </div>
@@ -238,7 +243,6 @@
         </div>
     </div>
 </div>
-
 
 @endsection
 
@@ -461,6 +465,55 @@
         z-index: 15; /* Au-dessus des vidéos quand l'audio est seul */
     }
 
+    /* Styles spécifiques pour la modale d'initiation d'appel */
+    #initiateCallModal .whatsapp-search-input {
+        border-radius: 20px; /* Plus arrondi pour l'input de recherche dans la modale */
+        border: 1px solid var(--whatsapp-search-border);
+    }
+    #initiateCallModal .input-group .whatsapp-search-input {
+        border-radius: 20px 0 0 20px; /* S'assurer que le coin droit est bien géré avec le bouton */
+    }
+    #initiateCallModal .input-group .whatsapp-search-btn {
+        border-radius: 0 20px 20px 0;
+        border: 1px solid var(--whatsapp-search-border);
+        border-left: none; /* Supprimer la double bordure */
+    }
+
+    .list-group-item {
+        background-color: var(--whatsapp-card-bg);
+        border: none;
+        border-bottom: 1px solid var(--whatsapp-border);
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+    .list-group-item:hover {
+        background-color: var(--whatsapp-light-hover);
+    }
+    .list-group-item.active {
+        background-color: var(--whatsapp-green-light);
+        color: white;
+    }
+    .list-group-item .avatar-thumbnail, .list-group-item .avatar-text-placeholder {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+        border: 1px solid var(--whatsapp-border); /* Moins prononcé dans la liste */
+    }
+    .list-group-item.active .avatar-thumbnail, .list-group-item.active .avatar-text-placeholder {
+        border-color: white; /* Bordure blanche quand sélectionné */
+    }
+    .list-group-item .user-name {
+        font-weight: 500;
+        color: var(--whatsapp-text-dark);
+    }
+    .list-group-item.active .user-name {
+        color: white;
+    }
+
+
     /* Responsive adjustments */
     @media (max-width: 767px) {
         .content-section {
@@ -542,6 +595,165 @@
             });
         }
         setActiveLink();
+
+        // --- Logique pour la modale d'initiation d'appel ---
+        const initiateCallModal = document.getElementById('initiateCallModal');
+        const contactSearchInput = document.getElementById('contactSearchInput');
+        const contactListForCall = document.getElementById('contactListForCall');
+        const selectedContactIdInput = document.getElementById('selectedContactId');
+        const startCallButton = document.getElementById('startCallButton');
+        const clearSearchButton = document.getElementById('clearSearchButton');
+
+        let allUsers = []; // Pour stocker tous les utilisateurs chargés
+
+        // Fonction pour formater l'avatar
+        function getAvatarHtml(user) {
+            let avatarHtml = '';
+            if (user.profile_picture) {
+                const avatarSrc = user.profile_picture.startsWith('http') ? user.profile_picture : `/storage/${user.profile_picture}`;
+                avatarHtml = `<img src="${avatarSrc}" alt="Photo de profil de ${user.name}" class="avatar-thumbnail">`;
+            } else {
+                let initials = '';
+                if (user.name) {
+                    const words = user.name.split(' ');
+                    words.forEach(word => initials += word.substring(0, 1).toUpperCase());
+                    if (initials.length > 2) initials = initials.substring(0, 2);
+                } else {
+                    initials = '??';
+                }
+                const bgColor = '#' + (user.email ? md5(user.email).substring(0, 6) : (user.id ? md5(user.id.toString()).substring(0, 6) : 'cccccc')); // Assurez-vous d'avoir une fonction md5 ou un polyfill
+                avatarHtml = `<div class="avatar-text-placeholder" style="background-color: ${bgColor};">${initials}</div>`;
+            }
+            return avatarHtml;
+        }
+
+        // Fonction pour charger les contacts
+        async function loadContacts(query = '') {
+            contactListForCall.innerHTML = '<p class="text-muted text-center p-2"><i class="fas fa-spinner fa-spin me-2"></i> Chargement des contacts...</p>';
+            try {
+                // Adaptez cette URL à votre endpoint de recherche d'utilisateurs
+                // Il est probable que ce soit la même que pour la recherche de messages si tu as une telle fonctionnalité.
+                const response = await fetch(`/chats/search-users?search=${encodeURIComponent(query)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const users = await response.json();
+                allUsers = users; // Stocke la liste complète
+                displayContacts(users);
+            } catch (error) {
+                console.error('Erreur lors du chargement des contacts:', error);
+                contactListForCall.innerHTML = '<p class="text-danger text-center p-2"><i class="fas fa-exclamation-triangle me-2"></i> Erreur lors du chargement des contacts.</p>';
+            }
+        }
+
+        // Fonction pour afficher les contacts
+        function displayContacts(users) {
+            contactListForCall.innerHTML = '';
+            if (users.length === 0) {
+                contactListForCall.innerHTML = '<p class="text-muted text-center p-2">Aucun contact trouvé.</p>';
+                startCallButton.disabled = true;
+                selectedContactIdInput.value = '';
+                return;
+            }
+
+            users.forEach(user => {
+                // Exclure l'utilisateur actuel si nécessaire
+                if (user.id === {{ Auth::id() }}) { // Assurez-vous que l'utilisateur est authentifié
+                    return;
+                }
+
+                const listItem = document.createElement('a');
+                listItem.href = '#';
+                listItem.classList.add('list-group-item', 'list-group-item-action', 'd-flex', 'align-items-center');
+                listItem.setAttribute('data-user-id', user.id);
+                listItem.innerHTML = `
+                    <div class="me-3">${getAvatarHtml(user)}</div>
+                    <span class="user-name">${user.name}</span>
+                `;
+                contactListForCall.appendChild(listItem);
+
+                listItem.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Désélectionner tous les autres
+                    document.querySelectorAll('#contactListForCall .list-group-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    // Sélectionner celui-ci
+                    listItem.classList.add('active');
+                    selectedContactIdInput.value = user.id;
+                    startCallButton.disabled = false;
+                });
+            });
+        }
+
+        // Gestion de l'ouverture de la modale
+        initiateCallModal.addEventListener('show.bs.modal', function () {
+            loadContacts(); // Charge tous les contacts au début
+            contactSearchInput.value = ''; // Réinitialise la recherche
+            selectedContactIdInput.value = ''; // Réinitialise le contact sélectionné
+            startCallButton.disabled = true; // Désactive le bouton au début
+            document.querySelectorAll('#contactListForCall .list-group-item').forEach(item => item.classList.remove('active')); // Désélectionne tout
+        });
+
+        // Gestion de la recherche en temps réel (débounce pour éviter trop de requêtes)
+        let searchTimeout;
+        contactSearchInput.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = this.value.trim();
+                // Si la recherche est vide, réafficher tous les utilisateurs, sinon filtrer
+                if (query === '') {
+                    displayContacts(allUsers); // Affiche tous les utilisateurs précédemment chargés
+                } else {
+                    const filteredUsers = allUsers.filter(user =>
+                        user.name.toLowerCase().includes(query.toLowerCase())
+                    );
+                    displayContacts(filteredUsers);
+                }
+            }, 300); // Débounce de 300ms
+        });
+
+        // Bouton pour vider la recherche
+        clearSearchButton.addEventListener('click', function() {
+            contactSearchInput.value = '';
+            displayContacts(allUsers); // Réaffiche tous les utilisateurs
+        });
+
+        // Gérer le formulaire de démarrage d'appel
+        document.getElementById('initiateCallForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const receiverId = selectedContactIdInput.value;
+            const callType = document.querySelector('input[name="call_type"]:checked').value;
+
+            if (receiverId) {
+                // Ici, tu déclencherais ton appel
+                console.log(`Tentative de démarrer un appel ${callType} avec l'utilisateur ID: ${receiverId}`);
+                // Fermer la modale
+                const modal = bootstrap.Modal.getInstance(initiateCallModal);
+                modal.hide();
+
+                // TODO: Appeler ta fonction JavaScript qui initie l'appel WebRTC/Pusher
+                // Par exemple: initiateCall(receiverId, callType);
+                // Tu devras t'assurer que cette fonction est globale ou accessible ici.
+            } else {
+                alert('Veuillez sélectionner un contact.');
+            }
+        });
+
+        // Polyfill basique pour MD5 si tu n'as pas de bibliothèque JS pour ça (pour les avatars par défaut)
+        function md5(string) {
+            // Pas une vraie implémentation MD5 sécurisée, juste pour générer un hash visuel.
+            // Pour une vraie sécurité, utilise une bibliothèque crypto ou ne le fais pas côté client.
+            let hash = 0;
+            for (let i = 0; i < string.length; i++) {
+                const char = string.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0; // Convert to 32bit integer
+            }
+            return (hash >>> 0).toString(16); // Convert to unsigned hex
+        }
+
+        // Fin de la logique pour la modale d'initiation d'appel
     });
 </script>
 @endpush
