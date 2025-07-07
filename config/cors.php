@@ -5,27 +5,27 @@ return [
     'paths' => [
         'api/*',
         'sanctum/csrf-cookie',
-        'broadcasting/auth', // Nécessaire pour Echo (private/public channels)
+        'broadcasting/auth',
     ],
 
-    'allowed_methods' => ['*'],
+    'allowed_methods' => ['*'], // Tous les types de requêtes (GET, POST, etc.)
 
     'allowed_origins' => [
-        'https://jobelardc-app.onrender.com', // Ton frontend exact ici
+        'https://jobelardc-app.onrender.com',
     ],
 
     'allowed_origins_patterns' => [
-        // Exemple si tu veux autoriser plusieurs sous-domaines
+        // Optionnel : utile si tu veux autoriser plusieurs sous-domaines comme admin.example.com, etc.
         // '^https:\/\/.*\.onrender\.com$',
     ],
 
     'allowed_headers' => ['*'],
 
     'exposed_headers' => [
-        'X-CSRF-TOKEN', // facultatif mais utile si tu veux le lire côté client
+        'X-CSRF-TOKEN', // Si tu veux accéder à ce header côté JS
     ],
 
     'max_age' => 0,
 
-    'supports_credentials' => true, // Crucial pour Sanctum + cookies cross-origin
+    'supports_credentials' => true, // ✅ Nécessaire pour Sanctum avec cookies
 ];

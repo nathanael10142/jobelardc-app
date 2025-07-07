@@ -11,13 +11,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Middleware global pour les requêtes web
+        // 🌐 Middleware web
         $middleware->web(append: [
             \App\Http\Middleware\TrustProxies::class,
-            \Illuminate\Http\Middleware\HandleCors::class,  // Middleware CORS natif Laravel 11
+            \Illuminate\Http\Middleware\HandleCors::class, // ✅ CORS pour les requêtes web (Broadcasting, Sanctum)
         ]);
 
-        // Alias des middlewares de Spatie
+        // 📡 Middleware API
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class, // ✅ Indispensable aussi ici
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class, // ✅ Pour les cookies Sanctum
+        ]);
+
+        // 🛡️ Aliases personnalisés (Spatie)
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
@@ -25,10 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Le gestionnaire des exceptions est ici
+        //
     })
     ->withProviders([
         App\Providers\RouteServiceProvider::class,
-        // \Spatie\Permission\PermissionServiceProvider::class, // Si nécessaire
+        // Spatie Permission auto-chargé si bien installé, sinon décommente ci-dessous :
+        // Spatie\Permission\PermissionServiceProvider::class,
     ])
     ->create();
