@@ -22,14 +22,11 @@ class BroadcastServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Cette ligne est cruciale ! Elle enregistre les routes d'authentification
-        // nécessaires pour vos canaux de diffusion (par exemple, pour Pusher).
-        // Assurez-vous qu'elle est décommentée.
-        Broadcast::routes();
+        // Enregistre les routes nécessaires pour l'authentification des canaux de diffusion
+        // avec le middleware 'auth' pour protéger l'accès aux canaux privés/presence.
+        Broadcast::routes(['middleware' => ['auth']]);
 
-        // Cette ligne inclut le fichier où vous définissez vos canaux de diffusion.
-        // C'est le fichier 'routes/channels.php' que nous venons de modifier.
+        // Charge les définitions des canaux de diffusion dans 'routes/channels.php'
         require base_path('routes/channels.php');
     }
 }
-
