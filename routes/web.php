@@ -166,8 +166,3 @@ Route::middleware(['auth'])->group(function () {
         "<h1>Redirection de test : Si vous voyez ceci, la redirection fonctionne bien.</h1>"
     )->name('redirection-test');
 });
-Route::get('/test-auth', function () {
-    return auth()->check()
-        ? '✅ Utilisateur connecté: ID ' . auth()->user()->id
-        : '❌ Utilisateur NON connecté';
-});
