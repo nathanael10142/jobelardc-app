@@ -4,114 +4,117 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {{-- CSRF Token --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'Jobela RDC') }}</title>
 
-    {{-- Fonts: Nunito est un bon choix pour sa lisibilité, proche de l'esprit WhatsApp --}}
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800&display=swap" rel="stylesheet">
 
-    {{-- Bootstrap 5.3.3 CSS (via CDN) - Base de la grille et des composants --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
-    {{-- Font Awesome 6.5.2 (via CDN) - Indispensable pour les icônes WhatsApp --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    {{-- Styles WhatsApp MÉTICULEUX --}}
     <style>
         :root {
-            /* Couleurs principales de la palette WhatsApp */
-            --whatsapp-green-dark: #008069; /* Le vert en-tête principal */
-            --whatsapp-green-light: #128C7E; /* Une nuance plus claire de vert */
-            --whatsapp-bg-light: #dadbd3;   /* Le fond gris-vert clair général */
-            --whatsapp-text-dark: #333;     /* Couleur de texte générale */
-            --whatsapp-text-muted: #666;    /* Texte secondaire, ex: date/heure */
-            --whatsapp-border: #e0e0e0;     /* Bordures légères */
-            --whatsapp-card-bg: #ffffff;   /* Fond des cartes et éléments blancs */
-            --whatsapp-hover-light: #f5f5f5; /* Couleur de survol légère */
-            --whatsapp-shadow: rgba(0, 0, 0, 0.12); /* Ombre subtile */
+            --whatsapp-green-dark: #008069;
+            --whatsapp-green-light: #128C7E;
+            --whatsapp-bg-light: #dadbd3;
+            --whatsapp-text-dark: #333;
+            --whatsapp-text-muted: #666;
+            --whatsapp-border: #e0e0e0;
+            --whatsapp-card-bg: #ffffff;
+            --whatsapp-hover-light: #f5f5f5;
+            --whatsapp-shadow: rgba(0, 0, 0, 0.12);
+            --whatsapp-chat-bg: url('https://placehold.co/800x600/e9e8de/a8b0bd?text=Fond+chat+Whatsapp');
+            --whatsapp-bubble-sent: #dcf8c6;
+            --whatsapp-bubble-received: #ffffff;
+            --whatsapp-active-tab-color: #fff;
+            --whatsapp-inactive-tab-color: rgba(255, 255, 255, 0.6);
+            --whatsapp-tab-indicator: #fff;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
 
         body {
-            background-color: var(--whatsapp-bg-light); /* Fond vert très clair */
+            background-color: var(--whatsapp-bg-light);
             font-family: 'Nunito', sans-serif;
-            min-height: 100vh; /* S'assure que le corps prend toute la hauteur */
             display: flex;
             flex-direction: column;
-            color: var(--whatsapp-text-dark); /* Couleur de texte par défaut */
-        }
-        #app {
-            flex-grow: 1; /* Permet à l'application de prendre l'espace disponible */
-            display: flex;
-            flex-direction: column;
+            color: var(--whatsapp-text-dark);
         }
 
-        /* En-tête de l'application (Barre verte en haut) */
-        .whatsapp-header {
-            background-color: var(--whatsapp-green-dark); /* Le vert foncé de l'en-tête */
-            height: 100px; /* Hauteur définie */
-            width: 100%;
+        #app {
+            flex-grow: 1;
             display: flex;
-            align-items: flex-end; /* Alignements des éléments en bas de la barre */
-            padding-bottom: 18px; /* Espacement interne pour le contenu */
-            padding-left: 10%; /* Marge sur les côtés, comme l'appli desktop */
-            padding-right: 10%;
-            color: var(--whatsapp-card-bg); /* Texte blanc dans l'en-tête */
-            box-shadow: 0 2px 5px var(--whatsapp-shadow); /* Ombre douce sous l'en-tête */
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .whatsapp-header {
+            background-color: var(--whatsapp-green-dark);
+            width: 100%;
+            padding: 15px 15px 0px 15px;
+            color: var(--whatsapp-card-bg);
+            box-shadow: 0 2px 5px var(--whatsapp-shadow);
             position: relative;
             z-index: 10;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
         }
-        .whatsapp-header .navbar-brand {
+        .whatsapp-header .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .whatsapp-header .app-title {
             color: var(--whatsapp-card-bg);
-            font-weight: 700; /* Plus de gras pour le titre */
-            font-size: 1.8rem; /* Taille de police légèrement plus grande */
+            font-weight: 700;
+            font-size: 1.6rem;
             text-decoration: none;
             display: flex;
             align-items: center;
         }
-        .whatsapp-header .navbar-brand:hover {
-            color: var(--whatsapp-card-bg); /* Pas de changement de couleur au survol pour le titre */
+        .whatsapp-header .app-title:hover {
+            color: var(--whatsapp-card-bg);
         }
-        .whatsapp-header .navbar-brand i { /* Icône optionnelle à côté du titre */
+        .whatsapp-header .app-title i {
             margin-right: 8px;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
         }
 
-        .whatsapp-header .navbar-nav {
-            margin-left: auto; /* Pousse les liens d'auth à droite */
-        }
-        .whatsapp-header .nav-item {
-            /* Espacement entre les éléments de la nav - réduit pour les icônes */
-            margin-left: 15px; 
-        }
-        .whatsapp-header .nav-link {
-            color: var(--whatsapp-card-bg) !important;
-            font-size: 1.05rem; /* Taille de police légèrement ajustée */
-            font-weight: 600; /* Texte plus audacieux */
-            transition: color 0.2s ease-in-out;
-            opacity: 0.9; /* Légèrement moins opaque pour un look plus subtil */
-            display: flex; /* Permet d'aligner l'icône et le texte (si tu les remets) */
+        .whatsapp-header .nav-icons {
+            display: flex;
             align-items: center;
         }
-        /* Style spécifique pour les icônes de navigation */
-        .whatsapp-header .nav-link i {
-            font-size: 1.5rem; /* Taille de l'icône */
-            line-height: 1; /* Assure que l'icône est bien centrée */
+        .whatsapp-header .nav-icons .nav-item {
+            margin-left: 15px;
         }
-
-        .whatsapp-header .nav-link:hover {
-            color: #dcf8c6 !important; /* Vert clair de survol, très proche de WhatsApp */
+        .whatsapp-header .nav-icons .nav-link {
+            color: var(--whatsapp-card-bg) !important;
+            font-size: 1.4rem;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        .whatsapp-header .nav-icons .nav-link:hover {
             opacity: 1;
         }
         .whatsapp-header .dropdown-menu {
-            background-color: var(--whatsapp-card-bg); /* Fond blanc pour le menu déroulant */
-            border: 1px solid var(--whatsapp-border); /* Bordure légère */
+            background-color: var(--whatsapp-card-bg);
+            border: 1px solid var(--whatsapp-border);
             border-radius: 8px;
             box-shadow: 0 4px 10px var(--whatsapp-shadow);
             padding: 5px 0;
-            min-width: 160px; /* Largeur minimale du dropdown */
+            min-width: 160px;
         }
         .whatsapp-header .dropdown-item {
             color: var(--whatsapp-text-dark);
@@ -123,83 +126,174 @@
             background-color: var(--whatsapp-hover-light);
         }
 
+        .navbar-avatar-thumbnail {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
 
-        /* Wrapper pour centrer le contenu comme les formulaires Login/Register */
+        .navbar-avatar-text-placeholder {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: white;
+            background-color: #555;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .navbar-avatar-text-placeholder i {
+            font-size: 1.2rem;
+        }
+
+        .whatsapp-tabs {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 5px;
+            position: relative;
+            z-index: 5;
+        }
+        .whatsapp-tabs .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            color: var(--whatsapp-inactive-tab-color);
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            text-decoration: none;
+            position: relative;
+            transition: color 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .whatsapp-tabs .tab-item:hover {
+            color: var(--whatsapp-active-tab-color);
+        }
+        .whatsapp-tabs .tab-item.camera-icon {
+            flex: 0 0 auto;
+            width: 40px;
+            font-size: 1.4rem;
+            color: var(--whatsapp-active-tab-color);
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .whatsapp-tabs .tab-item.active {
+            color: var(--whatsapp-active-tab-color);
+        }
+        .whatsapp-tabs .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            height: 4px;
+            background-color: var(--whatsapp-tab-indicator);
+            border-radius: 2px;
+        }
+        .whatsapp-tabs .unread-badge {
+            font-size: 0.7rem;
+            background-color: #0d6efd;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: static;
+            transform: none;
+            top: auto;
+            right: auto;
+            margin-left: 5px;
+        }
+
         .whatsapp-content-wrapper {
             flex-grow: 1;
             display: flex;
-            justify-content: center;
-            align-items: center; /* Centre le contenu verticalement */
-            padding: 40px 20px; /* Plus de padding autour du contenu */
-            background-color: var(--whatsapp-bg-light); /* Maintient le fond général */
+            flex-direction: column;
+            padding: 0;
+            background-color: var(--whatsapp-bg-light);
+            overflow-y: auto;
+            position: relative;
         }
 
-        /* Style des cartes de formulaire (Login, Register) */
         .whatsapp-card {
-            background-color: var(--whatsapp-card-bg); /* Fond blanc pur */
-            border-radius: 10px; /* Rayons de bordure légèrement plus prononcés */
-            box-shadow: 0 4px 12px var(--whatsapp-shadow); /* Ombre plus distincte */
+            background-color: var(--whatsapp-card-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px var(--whatsapp-shadow);
             border: none;
             width: 100%;
-            max-width: 520px; /* Une largeur légèrement ajustée */
-            overflow: hidden; /* Assure que le border-radius s'applique bien au contenu */
+            max-width: 480px;
+            overflow: hidden;
+            margin: 20px auto;
         }
         .whatsapp-card .card-header {
-            background-color: var(--whatsapp-hover-light); /* Gris clair subtil pour l'en-tête de carte */
+            background-color: var(--whatsapp-hover-light);
             color: var(--whatsapp-text-dark);
-            font-weight: 700; /* Gras pour le titre de carte */
-            border-bottom: 1px solid var(--whatsapp-border); /* Ligne de séparation fine */
-            padding: 20px 25px; /* Espacement ajusté */
-            font-size: 1.2rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--whatsapp-border);
+            padding: 18px 20px;
+            font-size: 1.1rem;
             border-top-left-radius: 10px;
             border-top-right-radius: 10px;
         }
         .whatsapp-card .card-body {
-            padding: 30px 25px; /* Espacement intérieur du corps de carte */
+            padding: 25px 20px;
         }
 
-        /* Style des éléments de formulaire */
-        .form-control, .form-select, .form-textarea { /* Ajout de form-select et form-textarea */
-            border-radius: 25px; /* Rayons de bordure arrondis comme dans WhatsApp */
+        .form-control, .form-select, .form-textarea {
+            border-radius: 8px;
             border: 1px solid var(--whatsapp-border);
-            padding: 12px 18px; /* Plus de padding pour une meilleure ergonomie */
-            font-size: 1rem;
+            padding: 10px 15px;
+            font-size: 0.95rem;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .form-control:focus, .form-select:focus, .form-textarea:focus { /* Ajout de form-select et form-textarea */
-            border-color: var(--whatsapp-green-light); /* Vert WhatsApp au focus */
-            box-shadow: 0 0 0 0.25rem rgba(18, 140, 126, 0.25); /* Ombre verte subtile au focus */
-            outline: none; /* Supprime l'outline par défaut du navigateur */
+        .form-control:focus, .form-select:focus, .form-textarea:focus {
+            border-color: var(--whatsapp-green-light);
+            box-shadow: 0 0 0 0.2rem rgba(18, 140, 126, 0.2);
+            outline: none;
         }
         .form-label {
-            font-weight: 600; /* Labels plus audacieux */
+            font-weight: 600;
             color: var(--whatsapp-text-dark);
-            margin-bottom: 8px; /* Espace sous le label */
+            margin-bottom: 5px;
+            font-size: 0.9rem;
         }
         .form-check-input {
-            border-radius: 4px; /* Un peu moins arrondi pour les checkboxes */
+            border-radius: 4px;
         }
         .form-check-input:checked {
             background-color: var(--whatsapp-green-dark);
             border-color: var(--whatsapp-green-dark);
         }
 
-        /* Boutons */
         .btn-primary {
-            background-color: var(--whatsapp-green-dark); /* Vert foncé WhatsApp pour les boutons d'action */
+            background-color: var(--whatsapp-green-dark);
             border-color: var(--whatsapp-green-dark);
-            border-radius: 25px; /* Boutons très arrondis */
-            padding: 12px 25px;
-            font-weight: 700; /* Texte des boutons en gras */
-            font-size: 1.05rem;
-            transition: background-color 0.2s, border-color 0.2s;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
         }
         .btn-primary:hover {
-            background-color: var(--whatsapp-green-light); /* Nuance de vert légèrement différente au survol */
+            background-color: var(--whatsapp-green-light);
             border-color: var(--whatsapp-green-light);
+            transform: translateY(-1px);
         }
         .btn-link {
-            color: var(--whatsapp-green-light); /* Liens dans le corps du formulaire en vert */
+            color: var(--whatsapp-green-light);
             text-decoration: none;
             font-weight: 600;
             transition: color 0.2s;
@@ -208,9 +302,8 @@
             color: var(--whatsapp-green-dark);
             text-decoration: underline;
         }
-        /* Style pour les boutons sociaux comme Google */
-        .btn-danger { /* Utilisez cette classe pour votre bouton Google */
-            background-color: #DB4437 !important; /* Rouge Google */
+        .btn-danger {
+            background-color: #DB4437 !important;
             border-color: #DB4437 !important;
             border-radius: 25px;
             padding: 10px 20px;
@@ -219,124 +312,222 @@
             transition: background-color 0.2s ease-in-out;
         }
         .btn-danger:hover {
-            background-color: #C1352A !important; /* Rouge plus foncé au survol */
+            background-color: #C1352A !important;
             border-color: #C1352A !important;
         }
         .btn-danger .fab {
-            margin-right: 8px; /* Espacement pour l'icône Google */
+            margin-right: 8px;
         }
 
-
-        /* Messages d'erreur de validation */
         .invalid-feedback {
-            font-size: 0.82rem;
-            margin-top: 5px; /* Espacement entre l'input et l'erreur */
-            color: #dc3545; /* Rouge standard pour les erreurs */
+            font-size: 0.8rem;
+            margin-top: 5px;
+            color: #dc3545;
         }
 
-        /* Ajustements mineurs pour la disposition des lignes de formulaire */
-        .row.mb-3 {
-            margin-bottom: 1.5rem !important; /* Espacement plus cohérent entre les lignes de formulaire */
+        .fab-button {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: var(--whatsapp-green-light);
+            color: white;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s, transform 0.1s;
+            z-index: 100;
         }
-        .row.mb-0 {
-            margin-bottom: 0 !important;
-        }
-
-        /* Classes pour les erreurs de validation client-side (compatibilité avec votre JS) */
-        .border-red-500 {
-            border-color: #dc3545 !important;
+        .fab-button:hover {
+            background-color: var(--whatsapp-green-dark);
+            transform: scale(1.05);
         }
 
         @media (max-width: 767px) {
             .whatsapp-header {
-                padding-left: 5%;
-                padding-right: 5%;
-                height: 80px; /* Un peu moins haut sur mobile */
+                height: auto;
+                padding-bottom: 0;
             }
-            .whatsapp-header .navbar-brand {
+            .whatsapp-header .header-top {
+                margin-bottom: 5px;
+            }
+            .whatsapp-header .app-title {
+                font-size: 1.4rem;
+            }
+            .whatsapp-header .app-title i {
+                font-size: 1.1rem;
+            }
+            .whatsapp-header .nav-icons .nav-link {
+                font-size: 1.2rem;
+            }
+            .whatsapp-tabs .tab-item {
+                font-size: 0.85rem;
+                padding: 12px 0;
+            }
+            .whatsapp-tabs .tab-item.camera-icon {
+                width: 50px;
+                font-size: 1.6rem;
+                border-bottom: 3px solid transparent;
+            }
+            .whatsapp-tabs .tab-item.camera-icon.active {
+                border-bottom-color: var(--whatsapp-tab-indicator);
+            }
+            .whatsapp-tabs .tab-item.active::after {
+                bottom: 0;
+                height: 3px;
+            }
+
+            .whatsapp-header .dropdown-toggle .d-md-none {
+                display: inline !important;
+            }
+            .whatsapp-header .dropdown-toggle .d-none.d-md-inline {
+                display: none !important;
+            }
+            .whatsapp-tabs .unread-badge {
+                position: static;
+                margin-left: 5px;
+                transform: none;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .whatsapp-header {
+                height: 100px;
+                padding-bottom: 15px;
+                padding-left: 10%;
+                padding-right: 10%;
+            }
+            .whatsapp-header .header-top {
+                margin-bottom: 15px;
+            }
+            .whatsapp-header .app-title {
+                font-size: 1.8rem;
+            }
+            .whatsapp-header .app-title i {
                 font-size: 1.5rem;
             }
-            .whatsapp-header .navbar-brand i {
-                font-size: 1.2rem;
+            .whatsapp-header .nav-icons .nav-link {
+                font-size: 1.5rem;
             }
-            .whatsapp-header .nav-item {
-                margin-left: 10px;
+            .whatsapp-tabs {
+                justify-content: flex-start;
+                gap: 30px;
             }
-            .whatsapp-header .nav-link {
-                font-size: 0.9rem;
+            .whatsapp-tabs .tab-item {
+                flex: none;
+                padding: 8px 15px;
+                font-size: 1rem;
             }
-            .whatsapp-header .nav-link i {
-                font-size: 1.2rem;
+            .whatsapp-tabs .tab-item.camera-icon {
+                display: none;
+            }
+            .whatsapp-tabs .tab-item.active::after {
+                bottom: -5px;
+                height: 4px;
             }
             .whatsapp-card {
-                margin-top: 20px; /* Plus d'espace au-dessus de la carte sur mobile */
-            }
-            .whatsapp-card .card-header {
-                font-size: 1rem;
-                padding: 15px 20px;
-            }
-            .whatsapp-card .card-body {
-                padding: 20px;
-            }
-            .form-control, .form-select, .form-textarea, .btn-primary, .btn-danger {
-                font-size: 0.9rem;
-                padding: 10px 15px;
-            }
-            .form-label {
-                text-align: left !important; /* Force l'alignement à gauche sur mobile */
-                width: 100%;
-            }
-            .col-md-4, .col-md-6, .col-md-8, .col-md-offset-4, .offset-md-2, .offset-md-4 {
-                width: 100%; /* Les colonnes Bootstrap prennent toute la largeur sur mobile */
-                margin-left: 0 !important;
-                padding-left: 0;
-                padding-right: 0;
-            }
-            .row.mb-3 {
-                flex-direction: column; /* Force les éléments à s'empiler sur mobile */
-                align-items: flex-start;
+                max-width: 520px;
+                margin-top: 40px;
             }
         }
     </style>
-
-    {{-- Section pour les styles spécifiques à la page (ex: pour la vue de chat complète) --}}
-    @yield('styles')
+    @stack('styles')
 </head>
-<body>
+<body @auth data-user-id="{{ Auth::id() }}" @endauth>
     <div id="app">
-        {{-- En-tête principal de l'application - Inspiré par la barre supérieure de WhatsApp --}}
         <header class="whatsapp-header">
-            <div class="container d-flex align-items-end justify-content-between h-100">
-                <a class="navbar-brand" href="{{ url('/') }}">
-                    <i class="fab fa-whatsapp"></i> Jobela RDC {{-- Icône WhatsApp pour le branding --}}
+            <div class="header-top">
+                <a class="app-title" href="{{ route('home') }}">
+                    <i class="fab fa-whatsapp"></i> Jobela RDC
                 </a>
 
-                <ul class="navbar-nav d-flex flex-row">
-                    {{-- Liens d'authentification sous forme d'icônes --}}
+                <ul class="navbar-nav nav-icons">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" title="Rechercher">
+                            <i class="fas fa-search"></i>
+                        </a>
+                    </li>
                     @guest
                         @if (Route::has('login'))
-                            <li class="nav-item">
+                            <li class="nav-item d-md-none">
                                 <a class="nav-link" href="{{ route('login') }}" title="{{ __('Se connecter') }}">
-                                    <i class="fas fa-sign-in-alt"></i> {{-- Icône de connexion --}}
+                                    <i class="fas fa-sign-in-alt"></i>
                                 </a>
                             </li>
                         @endif
 
                         @if (Route::has('register'))
-                            <li class="nav-item">
+                            <li class="nav-item d-md-none">
                                 <a class="nav-link" href="{{ route('register') }}" title="{{ __('S\'inscrire') }}">
-                                    <i class="fas fa-user-plus"></i> {{-- Icône d'inscription --}}
+                                    <i class="fas fa-user-plus"></i>
                                 </a>
                             </li>
                         @endif
                     @else
-                        {{-- Menu déroulant pour l'utilisateur connecté --}}
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                {{ Auth::user()->name }}
+                                @php
+                                    $user = Auth::user();
+                                    $avatarHtml = '';
+
+                                    if ($user) {
+                                        $avatarPath = $user->profile_picture ?? null;
+                                        $isExternal = $avatarPath && Str::startsWith($avatarPath, ['http://', 'https://']);
+
+                                        if ($avatarPath) {
+                                            $avatarSrc = $isExternal ? $avatarPath : asset('storage/' . $avatarPath);
+                                            $avatarHtml = '<img src="' . $avatarSrc . '" alt="Photo de profil" class="navbar-avatar-thumbnail">';
+                                        } else {
+                                            $initials = '';
+                                            if ($user->name) {
+                                                $words = explode(' ', $user->name);
+                                                foreach ($words as $word) {
+                                                    $initials .= strtoupper(substr($word, 0, 1));
+                                                }
+                                                if (strlen($initials) > 2) {
+                                                    $initials = substr($initials, 0, 2);
+                                                }
+                                            } else {
+                                                $initials = '??';
+                                            }
+                                            $bgColor = '#' . substr(md5($user->email ?? $user->id ?? uniqid()), 0, 6);
+                                            $avatarHtml = '<div class="navbar-avatar-text-placeholder" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
+                                        }
+                                    } else {
+                                        $avatarHtml = '<div class="navbar-avatar-text-placeholder" style="background-color: #999;"><i class="fas fa-user-circle"></i></div>';
+                                    }
+                                @endphp
+                                {!! $avatarHtml !!}
+                                <span class="d-none d-md-inline">{{ Auth::user()->name ?? 'Utilisateur' }}</span>
+                                <i class="fas fa-ellipsis-v d-md-none"></i>
                             </a>
 
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <a class="dropdown-item" href="{{ route('profile.index') }}">
+                                    <i class="fas fa-user me-2"></i> {{ __('Mon Profil') }}
+                                </a>
+                                <a class="dropdown-item" href="{{ route('listings.index') }}">
+                                    <i class="fas fa-store me-2"></i> {{ __('Annonces du Marché') }}
+                                </a>
+                                <a class="dropdown-item" href="{{ route('applications.index') }}">
+                                    <i class="fas fa-file-alt me-2"></i> {{ __('Mes Demandes/Offres') }}
+                                </a>
+
+                                <a class="dropdown-item" href="{{ route('groups.index') }}">
+                                    <i class="fas fa-users me-2"></i> {{ __('Groupes de discussion') }}
+                                </a>
+                                <hr class="dropdown-divider">
+                                <a class="dropdown-item" href="{{ route('settings.index') }}">
+                                    <i class="fas fa-cog me-2"></i> {{ __('Paramètres') }}
+                                </a>
+                                <a class="dropdown-item" href="{{ route('payment.index') }}">
+                                    <i class="fas fa-gem me-2"></i> {{ __('Premium & Paiements') }}
+                                </a>
+                                <hr class="dropdown-divider">
                                 <a class="dropdown-item" href="{{ route('logout') }}"
                                    onclick="event.preventDefault();
                                                  document.getElementById('logout-form').submit();">
@@ -350,18 +541,137 @@
                     @endguest
                 </ul>
             </div>
+
+            @auth
+            <nav class="whatsapp-tabs">
+                <a href="{{ route('camera.index') }}" class="tab-item camera-icon" title="Ouvrir la caméra"><i class="fas fa-camera"></i></a>
+                <a href="{{ route('chats.index') }}" class="tab-item" id="tab-chats">
+                    DISCUSSIONS
+                    <span class="unread-badge d-none" id="chats-badge">0</span>
+                </a>
+                <a href="{{ route('status.index') }}" class="tab-item" id="tab-status">
+                    ACTUALITÉS
+                    <span class="unread-badge d-none" id="status-badge">0</span>
+                </a>
+                <a href="{{ route('calls.index') }}" class="tab-item" id="tab-calls">
+                    APPELS
+                    <span class="unread-badge d-none" id="calls-badge">0</span>
+                </a>
+            </nav>
+            @endauth
         </header>
 
-        {{-- Wrapper principal pour le contenu des pages --}}
         <main class="whatsapp-content-wrapper">
-            {{-- C'est ici que le contenu spécifique à chaque page sera injecté --}}
             @yield('content')
         </main>
     </div>
 
-    {{-- Scripts Bootstrap 5.3.3 (via CDN) --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    {{-- Section pour les scripts JavaScript spécifiques à la page --}}
-    @yield('scripts')
+
+    <script>
+        window.Laravel = {
+            csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            user: @json(Auth::user()),
+            routes: {
+                chatsSearchUsers: "{{ route('chats.searchUsers') }}",
+                callsInitiate: "{{ route('calls.initiate') }}",
+                callsAccept: "{{ route('calls.accept') }}",
+                callsReject: "{{ route('calls.reject') }}",
+                callsEnd: "{{ route('calls.end') }}",
+                callsSignal: "{{ route('calls.signal') }}",
+                api: {
+                    unreadChats: "{{ route('api.unread.chats') }}",
+                    unreadStatus: "{{ route('api.unread.status') }}",
+                    unreadCalls: "{{ route('api.unread.calls') }}"
+                }
+            }
+        };
+    </script>
+
+    @vite('resources/js/app.js')
+
+    @stack('scripts')
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+
+            function setActiveLink() {
+                document.querySelectorAll('.whatsapp-tabs .tab-item').forEach(item => item.classList.remove('active'));
+                document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => item.classList.remove('active'));
+
+                if (currentPath.startsWith('{{ route('chats.index', [], false) }}')) {
+                    document.getElementById('tab-chats')?.classList.add('active');
+                } else if (currentPath.startsWith('{{ route('status.index', [], false) }}')) {
+                    document.getElementById('tab-status')?.classList.add('active');
+                } else if (currentPath.startsWith('{{ route('calls.index', [], false) }}')) {
+                    document.getElementById('tab-calls')?.classList.add('active');
+                } else if (currentPath.startsWith('{{ route('camera.index', [], false) }}')) {
+                    document.querySelector('.camera-icon')?.classList.add('active');
+                } else if (currentPath === '{{ route('home', [], false) }}' || currentPath.startsWith('{{ route('listings.index', [], false) }}')) {
+                }
+
+                document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
+                    const itemPath = new URL(item.href).pathname;
+                    if (itemPath === currentPath) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            setActiveLink();
+
+            async function fetchUnreadCounts() {
+                if (!window.Laravel || !window.Laravel.user || !window.Laravel.user.id) {
+                    return;
+                }
+
+                try {
+                    const unreadChatsResponse = await fetch(window.Laravel.routes.api.unreadChats);
+                    const unreadChatsData = await unreadChatsResponse.json();
+                    const chatsBadge = document.getElementById('chats-badge');
+                    if (chatsBadge) {
+                        if (unreadChatsData.count > 0) {
+                            chatsBadge.textContent = unreadChatsData.count;
+                            chatsBadge.classList.remove('d-none');
+                        } else {
+                            chatsBadge.classList.add('d-none');
+                        }
+                    }
+
+                    const unreadStatusResponse = await fetch(window.Laravel.routes.api.unreadStatus);
+                    const unreadStatusData = await unreadStatusResponse.json();
+                    const statusBadge = document.getElementById('status-badge');
+                    if (statusBadge) {
+                        if (unreadStatusData.count > 0) {
+                            statusBadge.textContent = unreadStatusData.count;
+                            statusBadge.classList.remove('d-none');
+                        } else {
+                            statusBadge.classList.add('d-none');
+                        }
+                    }
+
+                    const unreadCallsResponse = await fetch(window.Laravel.routes.api.unreadCalls);
+                    const unreadCallsData = await unreadCallsResponse.json();
+                    const callsBadge = document.getElementById('calls-badge');
+                    if (callsBadge) {
+                        if (unreadCallsData.count > 0) {
+                            callsBadge.textContent = unreadCallsData.count;
+                            callsBadge.classList.remove('d-none');
+                        } else {
+                            callsBadge.classList.add('d-none');
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Erreur lors de la récupération des comptes non lus:", error);
+                }
+            }
+
+            if (window.Laravel.user) {
+                fetchUnreadCounts();
+                setInterval(fetchUnreadCounts, 30000);
+            }
+        });
+    </script>
 </body>
 </html>

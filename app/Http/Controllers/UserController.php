@@ -5,21 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash; // Pour la création/mise à jour d'utilisateurs si nécessaire
-use Spatie\Permission\Models\Role; // Pour la gestion des rôles
+use Illuminate\Support\Facades\Hash; // For creating/updating users if necessary
+use Spatie\Permission\Models\Role; // For role management
+use Illuminate\Support\Facades\Log; // Added for logging in API methods
+use Symfony\Component\HttpFoundation\Response; // For HTTP status codes
 
 class UserController extends Controller
 {
     public function __construct()
     {
-        // Applique le middleware 'auth' à toutes les méthodes du contrôleur
-        $this->middleware('auth');
-        // Applique le middleware de permission pour l'accès au panneau d'administration
+        // Apply 'auth' middleware for web routes (session-based authentication)
+        $this->middleware('auth')->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+        // Apply 'auth:sanctum' middleware for API routes
+        // Ensure 'searchApi' and 'indexApi' are protected by sanctum
+        $this->middleware('auth:sanctum')->only(['indexApi', 'searchApi']);
+        // Apply permission middleware for admin panel access
         $this->middleware('permission:access admin panel')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
     }
 
     /**
-     * Affiche une liste de tous les utilisateurs (pour l'administration).
+     * Display a listing of all users (for administration).
+     *
+     * @return \Illuminate\View\View
      */
     public function index()
     {
@@ -28,16 +35,21 @@ class UserController extends Controller
     }
 
     /**
-     * Affiche le formulaire de création d'un nouvel utilisateur.
+     * Show the form for creating a new user.
+     *
+     * @return \Illuminate\View\View
      */
     public function create()
     {
-        $roles = Role::all(); // Récupère tous les rôles pour le formulaire
+        $roles = Role::all(); // Retrieve all roles for the form
         return view('admin.users.create', compact('roles'));
     }
 
     /**
-     * Stocke un nouvel utilisateur dans la base de données.
+     * Store a newly created user in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
@@ -50,8 +62,8 @@ class UserController extends Controller
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'location' => 'nullable|string|max:255',
             'user_type' => 'required|string|in:prestataire,demandeur,both,employer,candidate',
-            'roles' => 'array', // Assurez-vous que c'est un tableau
-            'roles.*' => 'exists:roles,name', // Chaque rôle doit exister
+            'roles' => 'array', // Ensure it's an array
+            'roles.*' => 'exists:roles,name', // Each role must exist
         ]);
 
         $profilePicturePath = null;
@@ -73,7 +85,7 @@ class UserController extends Controller
         if ($request->has('roles')) {
             $user->syncRoles($request->roles);
         } else {
-            // Assigner un rôle par défaut si aucun n'est spécifié
+            // Assign a default role if none is specified
             $user->assignRole('user');
         }
 
@@ -81,7 +93,10 @@ class UserController extends Controller
     }
 
     /**
-     * Affiche les détails d'un utilisateur spécifique.
+     * Display the specified user.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\View\View
      */
     public function show(User $user)
     {
@@ -89,7 +104,10 @@ class UserController extends Controller
     }
 
     /**
-     * Affiche le formulaire d'édition d'un utilisateur.
+     * Show the form for editing the specified user.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\View\View
      */
     public function edit(User $user)
     {
@@ -98,7 +116,11 @@ class UserController extends Controller
     }
 
     /**
-     * Met à jour un utilisateur dans la base de données.
+     * Update the specified user in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, User $user)
     {
@@ -118,10 +140,10 @@ class UserController extends Controller
         $userData = $request->only(['name', 'email', 'phone_number', 'bio', 'location', 'user_type']);
 
         if ($request->hasFile('profile_picture')) {
-            // Supprimer l'ancienne image si elle existe
-            if ($user->profile_picture) {
-                // Storage::disk('public')->delete($user->profile_picture); // Décommenter si vous gérez le stockage
-            }
+            // Delete old image if it exists
+            // if ($user->profile_picture) {
+            //     Storage::disk('public')->delete($user->profile_picture); // Uncomment if you manage storage
+            // }
             $userData['profile_picture'] = $request->file('profile_picture')->store('profile_pictures', 'public');
         }
 
@@ -134,34 +156,37 @@ class UserController extends Controller
         if ($request->has('roles')) {
             $user->syncRoles($request->roles);
         } else {
-            $user->syncRoles([]); // Supprime tous les rôles si aucun n'est sélectionné
+            $user->syncRoles([]); // Remove all roles if none selected
         }
 
         return redirect()->route('admin.users.index')->with('success', 'Utilisateur mis à jour avec succès.');
     }
 
     /**
-     * Supprime un utilisateur de la base de données.
+     * Remove the specified user from storage.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(User $user)
     {
-        // Empêcher la suppression de l'utilisateur actuellement authentifié
+        // Prevent deletion of the currently authenticated user
         if ($user->id === Auth::id()) {
             return redirect()->back()->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
         }
 
-        // Supprimer l'image de profil si elle existe
-        if ($user->profile_picture) {
-            // Storage::disk('public')->delete($user->profile_picture); // Décommenter si vous gérez le stockage
-        }
+        // Delete profile picture if it exists
+        // if ($user->profile_picture) {
+        //     Storage::disk('public')->delete($user->profile_picture); // Uncomment if you manage storage
+        // }
 
         $user->delete();
         return redirect()->route('admin.users.index')->with('success', 'Utilisateur supprimé avec succès.');
     }
 
     /**
-     * API: Retourne une liste de tous les utilisateurs (sauf l'utilisateur authentifié).
-     * Inclut les informations nécessaires pour l'affichage dans l'application d'appel.
+     * API: Returns a list of all users (excluding the authenticated user).
+     * Includes necessary information for display in the calling application.
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -170,12 +195,12 @@ class UserController extends Controller
     {
         $currentUserId = Auth::id();
 
-        // Récupère tous les utilisateurs sauf l'utilisateur actuel
+        // Retrieve all users except the current user
         $users = User::where('id', '!=', $currentUserId)
             ->orderBy('name')
-            ->get(['id', 'name', 'profile_picture', 'email']); // Sélectionnez uniquement les champs nécessaires
+            ->get(['id', 'name', 'profile_picture', 'email', 'user_type']); // Include user_type
 
-        // Ajoute les initiales et une couleur de fond pour l'avatar si pas d'image de profil
+        // Add initials and a background color for the avatar if no profile picture
         $users->each(function ($user) {
             $initials = '';
             if ($user->name) {
@@ -183,17 +208,50 @@ class UserController extends Controller
                 foreach ($words as $word) {
                     $initials .= strtoupper(substr($word, 0, 1));
                 }
-                $user->initials = substr($initials, 0, 2); // Limiter à deux initiales
+                $user->initials = substr($initials, 0, 2); // Limit to two initials
             } else {
                 $user->initials = '??';
             }
 
-            // Générer une couleur cohérente basée sur l'email ou l'ID de l'utilisateur
-            // pour les avatars d'initiales
+            // Generate a consistent color based on user's email or ID for initial avatars
             $hash = md5($user->email ?? $user->id);
             $user->avatar_bg_color = '#' . substr($hash, 0, 6);
         });
 
-        return response()->json(['users' => $users]);
+        return response()->json($users); // Return the collection directly, not wrapped in 'users'
+    }
+
+    /**
+     * API: Searches for users (contacts) for call initiation.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function searchApi(Request $request)
+    {
+        $search = $request->input('query');
+        $currentUserId = Auth::id();
+
+        Log::info("API User Search: Query '{$search}' by user {$currentUserId}");
+
+        if (empty($search) || strlen($search) < 2) { // Minimum 2 characters for search
+            return response()->json([], Response::HTTP_OK);
+        }
+
+        try {
+            $contacts = User::where('id', '!=', $currentUserId)
+                            ->where(function($query) use ($search) {
+                                $query->where('name', 'like', '%' . $search . '%')
+                                      ->orWhere('email', 'like', '%' . $search . '%');
+                            })
+                            ->limit(10) // Limit results for performance
+                            ->get(['id', 'name', 'profile_picture', 'email', 'user_type']); // Select only necessary fields
+
+            return response()->json($contacts, Response::HTTP_OK);
+
+        } catch (\Exception $e) {
+            Log::error("Error in UserController@searchApi: " . $e->getMessage(), ['exception' => $e, 'search_query' => $search, 'user_id' => $currentUserId]);
+            return response()->json(['message' => 'Erreur lors de la recherche des utilisateurs.'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 }

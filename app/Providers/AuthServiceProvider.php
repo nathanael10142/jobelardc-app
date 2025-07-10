@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Providers; // Cette ligne est cruciale et doit être présente !
+namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Gate; // Assurez-vous que Gate est importé si vous l'utilisez
-use App\Models\User; // Assurez-vous que le modèle User est importé
-use App\Models\JobListing; // Importez le modèle JobListing si vous avez des policies pour cela
-use App\Policies\JobListingPolicy; // Importez la policy correspondante
+use Illuminate\Support\Facades\Gate;
+use App\Models\User;
+use App\Models\JobListing;
+use App\Policies\JobListingPolicy;
+use Illuminate\Support\Facades\Broadcast; // <-- AJOUTEZ CETTE LIGNE
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -16,8 +17,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Policies\ModelPolicy', // Exemple
-        JobListing::class => JobListingPolicy::class, // Exemple de mapping de policy
+        JobListing::class => JobListingPolicy::class,
     ];
 
     /**
@@ -25,11 +25,17 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->registerPolicies(); // Cette ligne est importante pour enregistrer les policies
+
         // Définition des Gates (portes d'autorisation)
         Gate::define('view-admin-dashboard', function (User $user) {
             return $user->hasAnyRole(['super_admin', 'admin']);
         });
 
-        // Les autres Gates ou logiques d'autorisation peuvent être définies ici.
+        // C'EST LA LIGNE CRUCIALE POUR LA DIFFUSION
+        Broadcast::routes(); // <-- AJOUTEZ CETTE LIGNE
+
+        // Assurez-vous que cette ligne est présente et pointe vers votre fichier channels.php
+        require base_path('routes/channels.php');
     }
 }

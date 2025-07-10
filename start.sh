@@ -56,7 +56,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# --- 3. Gestion des Permissions du Système de Fichiers ---
+# --- 3. Gestion des Permissions du Système de Fichiers --- 
 
 # Définir les permissions pour les répertoires de stockage et de cache.
 # 'storage' est essentiel pour les logs, sessions, uploads. 'bootstrap/cache' pour les fichiers de cache compilés.

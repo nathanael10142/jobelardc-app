@@ -183,7 +183,8 @@
 </div>
 @endsection
 
-@section('scripts')
+{{-- Pousser le script vers la pile 'scripts' définie dans le layout --}}
+@push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM content loaded for register.blade.php (AJAX version)');
@@ -197,11 +198,13 @@
         async function loadCities(selectedProvince) {
             console.log('Attempting to load cities for:', selectedProvince);
             citySelect.innerHTML = '<option value="">Chargement...</option>'; // Message de chargement
+            citySelect.disabled = true; // Désactiver la sélection pendant le chargement
 
             try {
                 // Utilisez la route nommée de Laravel pour une URL robuste
-                // C'est la modification clé pour résoudre l'erreur de "Mixed Content"
+                // Assurez-vous que la route 'get.cities.by.province' est bien définie dans routes/web.php
                 const url = "{{ route('get.cities.by.province') }}?province=" + encodeURIComponent(selectedProvince);
+                console.log('Fetching cities from URL:', url);
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -212,7 +215,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                    const errorText = await response.text(); // Tente de lire le corps de l'erreur
+                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}. Response: ${errorText}`);
                 }
 
                 const cities = await response.json();
@@ -237,6 +241,8 @@
             } catch (error) {
                 console.error('Error fetching cities:', error);
                 citySelect.innerHTML = '<option value="">Erreur de chargement des villes</option>';
+            } finally {
+                citySelect.disabled = false; // Réactiver la sélection après le chargement (ou l'erreur)
             }
         }
 
@@ -248,6 +254,7 @@
                     loadCities(selectedProvince);
                 } else {
                     citySelect.innerHTML = '<option value="">Sélectionnez une ville</option>'; // Si aucune province n'est sélectionnée
+                    citySelect.disabled = true; // Désactiver si aucune province n'est sélectionnée
                 }
             });
         } else {
@@ -261,6 +268,7 @@
             loadCities(provinceSelect.value);
         } else {
             console.log('No old province value found on load. City list remains empty initially.');
+            citySelect.disabled = true; // Désactiver la ville par défaut si aucune province n'est sélectionnée
         }
 
         // Validation côté client pour le numéro de téléphone (reste inchangée)
@@ -274,6 +282,7 @@
 
                 if (phoneNumberInput.value.trim() !== '') {
                     const phoneNumber = phoneNumberInput.value.trim();
+                    // Regex pour les numéros RDC (+243 ou 0 suivi de 8 ou 9, puis 8 chiffres)
                     const phoneRegex = /^(?:\+243|0)[8-9]\d{8}$/;
 
                     if (!phoneRegex.test(phoneNumber)) {
@@ -302,4 +311,4 @@
         }
     });
 </script>
-@endsection
+@endpush

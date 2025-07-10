@@ -1,4 +1,4 @@
-<?php
+<?php // Cette balise doit être la toute première chose dans le fichier, sans aucun espace ou caractère avant.
 
 namespace App\Http\Controllers;
 
@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Events\MessageSent;
+use App\Events\MessageRead;
 
 class ChatController extends Controller
 {
@@ -15,9 +17,6 @@ class ChatController extends Controller
         $this->middleware(['auth', 'verified']);
     }
 
-    /**
-     * Affiche la liste des conversations de l'utilisateur.
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -25,20 +24,15 @@ class ChatController extends Controller
         $query = $user->conversations()
             ->with(['users', 'lastMessage']);
 
-        // Appliquer la logique de recherche si un terme est présent
         if ($request->has('search') && !empty($request->search)) {
             $searchTerm = $request->search;
 
             $query->where(function ($q) use ($searchTerm, $user) {
-                // Recherche par nom de conversation (pour les groupes, si vous en avez)
                 $q->where('name', 'like', '%' . $searchTerm . '%')
-                    // Recherche par nom d'utilisateur participant à la conversation
                     ->orWhereHas('users', function ($subQuery) use ($searchTerm, $user) {
-                        // Exclure l'utilisateur actuel de la recherche de noms de participants
                         $subQuery->where('users.id', '!=', $user->id)
                                  ->where('name', 'like', '%' . $searchTerm . '%');
                     })
-                    // Recherche par contenu du dernier message
                     ->orWhereHas('lastMessage', function ($subQuery) use ($searchTerm) {
                         $subQuery->where('body', 'like', '%' . $searchTerm . '%');
                     });
@@ -47,7 +41,6 @@ class ChatController extends Controller
 
         $conversations = $query->latest('updated_at')->get();
 
-        // Compter les messages non lus pour chaque conversation
         $conversations->each(function ($conversation) use ($user) {
             $conversation->unread_messages_count = $conversation->messages()
                 ->where('user_id', '!=', $user->id)
@@ -60,10 +53,6 @@ class ChatController extends Controller
         return view('chats.index', compact('conversations'));
     }
 
-    /**
-     * Affiche une conversation spécifique et marque les messages comme lus.
-     * Cette méthode est souvent pour une vue HTML.
-     */
     public function show(Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
@@ -80,16 +69,13 @@ class ChatController extends Controller
         foreach ($messages as $message) {
             if ($message->user_id !== $user->id && !$message->readBy->contains($user->id)) {
                 $message->readBy()->attach($user->id);
+                broadcast(new MessageRead($message->id, $conversation->id, $user->id))->toOthers();
             }
         }
 
         return view('chats.show', compact('conversation', 'messages'));
     }
 
-    /**
-     * Stocke un nouveau message dans une conversation.
-     * Cette méthode est renommée de 'store' à 'sendMessage' pour correspondre à la route.
-     */
     public function sendMessage(Request $request, Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
@@ -106,18 +92,39 @@ class ChatController extends Controller
         ]);
 
         $message->readBy()->attach(Auth::id());
-        $conversation->touch(); // Mettre à jour `updated_at` de la conversation
+        $conversation->touch();
+
+        $message->load('user'); // Load user relationship for the event
+
+        broadcast(new MessageSent($message))->toOthers(); // Broadcast to all except sender
 
         return response()->json([
             'success' => true,
-            'message' => $message->load('user')
+            'message' => $message->toArray()
         ]);
     }
 
-    /**
-     * Récupère les messages d'une conversation spécifique pour l'API.
-     * Nouvelle méthode pour correspondre à la route 'getMessages'.
-     */
+    public function markAsRead(Message $message)
+    {
+        $user = Auth::user();
+
+        if (!$message->conversation->users->contains($user->id)) {
+            return response()->json(['error' => 'Accès non autorisé au message.'], 403);
+        }
+
+        if ($message->user_id === $user->id) {
+            return response()->json(['status' => 'self_read', 'message' => 'Vous ne pouvez pas marquer votre propre message comme lu par vous-même.']);
+        }
+
+        if (!$message->readBy->contains($user->id)) {
+            $message->readBy()->attach($user->id);
+            broadcast(new MessageRead($message->id, $message->conversation_id, $user->id))->toOthers();
+            return response()->json(['status' => 'success', 'message' => 'Message marqué comme lu']);
+        }
+
+        return response()->json(['status' => 'already_read', 'message' => 'Message déjà lu']);
+    }
+
     public function getMessages(Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
@@ -129,36 +136,21 @@ class ChatController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        // Si tu veux que cette action marque aussi les messages comme lus (comme 'show' le fait), ajoute la boucle ici:
-        // $user = Auth::user();
-        // foreach ($messages as $message) {
-        //     if ($message->user_id !== $user->id && !$message->readBy->contains($user->id)) {
-        //         $message->readBy()->attach($user->id);
-        //     }
-        // }
-
         return response()->json(['messages' => $messages]);
     }
 
-
-    /**
-     * Recherche d'utilisateurs par nom ou email,
-     * ou charge les utilisateurs par défaut si aucune recherche n'est spécifiée.
-     */
     public function searchUsers(Request $request)
     {
         $query = $request->input('query');
         $currentUserId = Auth::id();
 
         $users = User::where('id', '!=', $currentUserId)
-            // Utilisez `when` pour appliquer les conditions de recherche uniquement si `query` est non vide.
-            // Si `query` est vide, cette clause est ignorée et le query builder continue sans filtre de nom/email.
             ->when(!empty($query) && strlen($query) >= 2, function ($q) use ($query) {
                 $q->where('name', 'like', '%' . $query . '%')
-                  ->orWhere('email', 'like', '%' . $query . '%');
+                    ->orWhere('email', 'like', '%' . $query . '%');
             })
             ->orderBy('name')
-            ->take(50) // Toujours limiter le nombre de résultats pour la performance
+            ->take(50)
             ->get(['id', 'name', 'email', 'profile_picture', 'user_type']);
 
         $users->each(function ($user) {
@@ -167,17 +159,15 @@ class ChatController extends Controller
                 ->take(2)
                 ->implode('');
 
-            $colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#A133FF', '#33FFF3'];
-            $user->avatar_bg_color = $colors[$user->id % count($colors)];
+            // Using a more consistent hash-based color generation for avatars
+            // This is better than modulo on ID for consistent colors across sessions/users
+            $hash = md5($user->email ?? $user->id);
+            $user->avatar_bg_color = '#' . substr($hash, 0, 6);
         });
 
-        // LIGNE CORRIGÉE : Renvoie directement le tableau d'utilisateurs
         return response()->json($users);
     }
 
-    /**
-     * Crée une conversation 1-on-1 si elle n'existe pas déjà.
-     */
     public function createConversation(Request $request)
     {
         $request->validate([

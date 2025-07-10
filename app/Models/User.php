@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models; // <--- CETTE LIGNE MANQUAIT ET EST CRUCIALE !
+namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail; // Laissez commenté si vous voulez désactiver la vérification
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,6 +10,13 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+// Importez les modèles nécessaires pour les comptages
+use App\Models\Message;
+use App\Models\Call; // IMPORTANT: Assurez-vous d'importer le modèle Call
+// Si vous avez un modèle pour les statuts, importez-le ici, ex:
+// use App\Models\StatusUpdate;
+
 
 class User extends Authenticatable // Ne pas implémenter MustVerifyEmail si vous voulez désactiver la vérification
 {
@@ -76,13 +83,92 @@ class User extends Authenticatable // Ne pas implémenter MustVerifyEmail si vou
 
     /**
      * Un utilisateur peut envoyer plusieurs messages.
+     * Cette relation lie les messages où l'utilisateur est l'EXPÉDITEUR.
+     * Elle utilise 'user_id' car c'est le nom de la colonne dans votre migration 'messages'.
      */
-    public function messages(): HasMany
+    public function sentMessages(): HasMany
     {
-        return $this->hasMany(Message::class);
+        return $this->hasMany(Message::class, 'user_id'); // Utilise 'user_id' comme clé étrangère
     }
 
-    // --- FIN NOUVELLES RELATIONS ---
+    /**
+     * Un utilisateur peut recevoir plusieurs messages.
+     * Cette relation lie les messages où l'utilisateur est le DESTINATAIRE.
+     * Elle nécessite que la colonne 'receiver_id' existe dans votre table 'messages'.
+     */
+    public function receivedMessages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'receiver_id');
+    }
+
+    // --- NOUVELLES RELATIONS POUR LES APPELS ---
+
+    /**
+     * Un utilisateur peut être l'appelant de plusieurs appels.
+     */
+    public function initiatedCalls(): HasMany
+    {
+        return $this->hasMany(Call::class, 'caller_id');
+    }
+
+    /**
+     * Un utilisateur peut être le destinataire de plusieurs appels.
+     */
+    public function receivedCalls(): HasMany
+    {
+        return $this->hasMany(Call::class, 'receiver_id');
+    }
+
+
+    // --- NOUVELLES MÉTHODES POUR LES COMPTAGES NON LUS ---
+
+    /**
+     * Calcule le nombre total de messages non lus pour cet utilisateur.
+     * Cette implémentation suppose que la table `messages` a une colonne `receiver_id`
+     * et une colonne `read_at` qui est NULL si le message n'est pas lu.
+     *
+     * @return int
+     */
+    public function unreadMessagesCount(): int
+    {
+        // On compte les messages reçus par cet utilisateur qui n'ont pas de timestamp 'read_at'
+        return $this->receivedMessages()->whereNull('read_at')->count();
+    }
+
+    /**
+     * Calcule le nombre d'actualités/statuts non lus pour cet utilisateur.
+     *
+     * IMPORTANT : Cette méthode est un PLACEHOLDER.
+     * Vous devrez l'adapter en fonction de la manière dont vous stockez
+     * et suivez les statuts/actualités et leur lecture par les utilisateurs.
+     *
+     * @return int
+     */
+    public function unreadStatusUpdatesCount(): int
+    {
+        // Assurez-vous d'importer votre modèle StatusUpdate en haut si vous l'utilisez.
+        // ex: use App\Models\StatusUpdate;
+
+        // return StatusUpdate::where(...votre logique de non-lecture ici...)->count();
+        return 0; // REMPLACER PAR VOTRE VRAIE LOGIQUE DE COMPTAGE DES STATUTS NON LUS
+    }
+
+    /**
+     * Calcule le nombre d'appels manqués pour cet utilisateur.
+     *
+     * Cette implémentation suppose que:
+     * - La table `calls` a une colonne `receiver_id` pour le destinataire de l'appel.
+     * - La table `calls` a une colonne `status` qui peut prendre la valeur 'missed'.
+     *
+     * @return int
+     */
+    public function missedCallsCount(): int
+    {
+        // Compte les appels où l'utilisateur est le destinataire et le statut est 'missed'
+        return $this->receivedCalls()->where('status', 'missed')->count();
+    }
+
+    // --- FIN NOUVELLES MÉTHODES ---
 
 
     /**

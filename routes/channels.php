@@ -1,16 +1,31 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
-use App\Models\User;
-use Illuminate\Support\Facades\Log;
 
-Broadcast::channel('calls.{userId}', function (User $user, $userId) {
-    Log::info("Authorization attempt for channel 'calls.{$userId}'.");
-    if ($user) {
-        Log::info("Authenticated user ID: {$user->id}. Channel ID: {$userId}.");
-    } else {
-        Log::warning("No authenticated user found for channel 'calls.{$userId}'.");
-    }
-    // Ne bloque jamais, toujours autorisé
-    return true;
+/*
+|--------------------------------------------------------------------------
+| Broadcast Channels
+|--------------------------------------------------------------------------
+|
+| Ici vous pouvez enregistrer les canaux de diffusion de votre application
+| et leur logique d’autorisation. Ces canaux sont utilisés par Laravel Echo
+| pour sécuriser l’accès aux événements diffusés.
+|
+*/
+
+// Canal privé pour un utilisateur spécifique
+Broadcast::channel('users.{id}', function ($user, $id) {
+    // Autoriser seulement si l'utilisateur authentifié correspond à l'ID du canal
+    return (int) $user->id === (int) $id;
 });
+
+// Exemple de canal public (optionnel)
+// Broadcast::channel('public-channel', function () {
+//     return true;
+// });
+
+// Exemple de canal de groupe avec autorisation personnalisée
+// Broadcast::channel('group.{groupId}', function ($user, $groupId) {
+//     // Vérifiez si l'utilisateur appartient au groupe (à adapter selon votre logique)
+//     return $user->groups->contains($groupId);
+// });

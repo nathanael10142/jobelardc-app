@@ -3,8 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Log; // Importation de la façade Log
+use Illuminate\Http\Request; // Pour les requêtes API
 
-// Importation de tous les contrôleurs nécessaires
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JobListingController;
 use App\Http\Controllers\Auth\LoginController;
@@ -23,48 +24,43 @@ use App\Http\Controllers\CallController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 
-// use App\Http\Controllers\Candidate\CandidateDashboardController;
-// use App\Http\Controllers\Employer\EmployerDashboardController;
-
 Route::get('/', function () {
+    Log::debug('WEB: Route principale (/) atteinte.');
     if (Auth::check()) {
         $user = Auth::user();
+        Log::debug('WEB: Utilisateur authentifié sur la route principale : ' . $user->email . ' (ID: ' . $user->id . ')');
         if ($user->hasAnyRole(['super_admin', 'admin'])) {
             return redirect()->route('admin.dashboard');
         }
         return redirect()->route('listings.index');
     }
+    Log::debug('WEB: Aucun utilisateur authentifié sur la route principale, redirection vers login.');
     return redirect()->route('login');
 })->name('home');
 
-// Auth routes
 Auth::routes();
 
 Route::get('/home', function () {
     return redirect()->route('home');
 })->middleware('auth');
 
-// Google OAuth routes
 Route::prefix('auth/google')->group(function () {
     Route::get('/', [LoginController::class, 'redirectToGoogle'])->name('google.auth');
     Route::get('callback', [LoginController::class, 'handleGoogleCallback'])->name('google.callback');
 });
 
-// Google registration completion
 Route::middleware('web')->group(function () {
     Route::get('/register/google/complete', [GoogleRegistrationController::class, 'showGoogleRegistrationForm'])->name('register.google.complete');
     Route::post('/register/google/complete', [GoogleRegistrationController::class, 'completeGoogleRegistration'])->name('register.google.complete.post');
     Route::get('/get-cities-by-province-google', [GoogleRegistrationController::class, 'getCitiesByProvince'])->name('get.cities.by.province.google');
 });
 
-// Generic cities AJAX route
 Route::get('/get-cities', [RegisterController::class, 'getCitiesByProvince'])->name('get.cities.by.province');
 
-// Routes protégées
 Route::middleware(['auth'])->group(function () {
 
-    // ✅ Route indispensable pour le broadcasting privé
-    Broadcast::routes(['middleware' => ['auth']]);
+    // IMPORTANT: protège la route d'authentification broadcasting
+    Broadcast::routes(['middleware' => ['auth']]); // Ou 'auth:sanctum' selon ta config
 
     // Profil utilisateur
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -97,11 +93,7 @@ Route::middleware(['auth'])->group(function () {
     // Statut
     Route::get('/status', [StatusController::class, 'index'])->name('status.index');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Chat
-    |--------------------------------------------------------------------------
-    */
+    // Chats
     Route::prefix('chats')->name('chats.')->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('index');
         Route::get('/search-users', [ChatController::class, 'searchUsers'])->name('searchUsers');
@@ -111,11 +103,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{conversation}/messages', [ChatController::class, 'getMessages'])->name('getMessages');
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Appels (audio / vidéo)
-    |--------------------------------------------------------------------------
-    */
+    // Appels
     Route::prefix('calls')->name('calls.')->group(function () {
         Route::get('/', [CallController::class, 'index'])->name('index');
         Route::post('/initiate', [CallController::class, 'initiate'])->name('initiate');
@@ -125,25 +113,38 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/signal', [CallController::class, 'signal'])->name('signal');
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Admin
-    |--------------------------------------------------------------------------
-    */
+    // Routes API pour les comptages non lus
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/unread/chats', function (Request $request) {
+            $count = Auth::user() ? Auth::user()->unreadMessagesCount() : 0;
+            Log::debug('API: unread/chats count: ' . $count);
+            return response()->json(['count' => $count]);
+        })->name('unread.chats');
+
+        Route::get('/unread/status', function (Request $request) {
+            $count = Auth::user() ? Auth::user()->unreadStatusUpdatesCount() : 0;
+            Log::debug('API: unread/status count: ' . $count);
+            return response()->json(['count' => $count]);
+        })->name('unread.status');
+
+        Route::get('/unread/calls', function (Request $request) {
+            $count = Auth::user() ? Auth::user()->missedCallsCount() : 0;
+            Log::debug('API: unread/calls count: ' . $count);
+            return response()->json(['count' => $count]);
+        })->name('unread.calls');
+    });
+
+    // Admin - accès restreint
     Route::prefix('admin')->name('admin.')->middleware('role:super_admin|admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-
         Route::resource('users', AdminUserController::class);
-
         Route::get('/jobs', [AdminController::class, 'jobsIndex'])->name('jobs.index');
         Route::get('/jobs/{job}', [AdminController::class, 'jobsShow'])->name('jobs.show');
         Route::put('/jobs/{job}/status', [AdminController::class, 'jobsUpdateStatus'])->name('jobs.updateStatus');
         Route::delete('/jobs/{job}', [AdminController::class, 'jobsDestroy'])->name('jobs.destroy');
-
         Route::resource('categories', AdminController::class)->except(['show']);
         Route::resource('roles', AdminController::class)->except(['show']);
         Route::resource('permissions', AdminController::class)->except(['show']);
-
         Route::get('/listings', [AdminController::class, 'listingsIndex'])->name('listings.index');
         Route::get('/listings/create', [AdminController::class, 'listingsCreate'])->name('listings.create');
         Route::post('/listings', [AdminController::class, 'listingsStore'])->name('listings.store');
@@ -152,7 +153,6 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/listings/{listing}', [AdminController::class, 'listingsUpdate'])->name('listings.update');
         Route::delete('/listings/{listing}', [AdminController::class, 'listingsDestroy'])->name('listings.destroy');
         Route::put('/listings/{listing}/status', [AdminController::class, 'listingsUpdateStatus'])->name('listings.updateStatus');
-
         Route::prefix('messages')->name('messages.')->group(function () {
             Route::get('/', [AdminController::class, 'messagesIndex'])->name('index');
             Route::get('{conversation}', [AdminController::class, 'messagesShow'])->name('show');
@@ -161,7 +161,6 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // Route de test
     Route::get('/redirection-test', fn () =>
         "<h1>Redirection de test : Si vous voyez ceci, la redirection fonctionne bien.</h1>"
     )->name('redirection-test');

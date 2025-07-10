@@ -14,10 +14,10 @@
     <link href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800&display=swap" rel="stylesheet">
 
     {{-- Bootstrap 5.3.3 CSS (via CDN) - Base de la grille et des composants --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
     {{-- Font Awesome 6.5.2 (via CDN) - Indispensable pour les icônes WhatsApp --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     {{-- Styles WhatsApp intégrés --}}
     <style>
@@ -132,6 +132,34 @@
         .whatsapp-header .dropdown-item:hover {
             background-color: var(--whatsapp-hover-light);
         }
+        /* NOUVEAU: Style pour les avatars dans la navbar */
+        .navbar-avatar-thumbnail {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.5); /* Bordure légère */
+        }
+
+        .navbar-avatar-text-placeholder {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: white; /* Couleur de texte pour les initiales */
+            background-color: #555; /* Couleur par défaut si pas d'image */
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .navbar-avatar-text-placeholder i {
+            font-size: 1.2rem;
+        }
+
 
         /* Barre d'onglets (DISCUSSIONS, ACTUALITÉS, APPELS) */
         .whatsapp-tabs {
@@ -152,6 +180,10 @@
             text-decoration: none;
             position: relative;
             transition: color 0.2s ease-in-out;
+            display: flex; /* NOUVEAU: Utiliser flexbox pour centrer le texte et le badge */
+            align-items: center; /* NOUVEAU: Centrer verticalement */
+            justify-content: center; /* NOUVEAU: Centrer horizontalement */
+            gap: 5px; /* NOUVEAU: Espace entre le texte et le badge */
         }
         .whatsapp-tabs .tab-item:hover {
             color: var(--whatsapp-active-tab-color);
@@ -178,15 +210,22 @@
             background-color: var(--whatsapp-tab-indicator);
             border-radius: 2px;
         }
-        .whatsapp-tabs .tab-item.unread-badge {
+        /* MODIFIÉ: Styles pour les badges non lus */
+        .whatsapp-tabs .unread-badge {
             font-size: 0.7rem;
             background-color: #0d6efd; /* Badge bleu WhatsApp */
             color: white;
             padding: 2px 6px;
-            border-radius: 50%;
-            position: absolute;
-            top: 2px;
-            right: 5px;
+            border-radius: 10px; /* MODIFIÉ: Plus ovale pour les nombres à deux chiffres */
+            min-width: 20px; /* MODIFIÉ: Largeur minimale pour les petits chiffres */
+            display: flex; /* MODIFIÉ: Pour centrer le texte */
+            align-items: center; /* MODIFIÉ: Pour centrer le texte */
+            justify-content: center; /* MODIFIÉ: Pour centrer le texte */
+            position: static; /* NOUVEAU: Permet au badge de s'intégrer au flex de l'onglet */
+            transform: none; /* NOUVEAU: Annule le transform si hérité */
+            top: auto; /* NOUVEAU: Annule la position absolue */
+            right: auto; /* NOUVEAU: Annule la position absolue */
+            margin-left: 5px; /* NOUVEAU: Petite marge à gauche pour l'espacement */
         }
 
 
@@ -368,6 +407,12 @@
             .whatsapp-header .dropdown-toggle .d-none.d-md-inline {
                 display: none !important;
             }
+            /* MODIFIÉ: Ajustement du badge pour mobile */
+            .whatsapp-tabs .unread-badge {
+                position: static; /* Retourne à la position normale du flux */
+                margin-left: 5px; /* Marge à gauche pour l'espacement */
+                transform: none; /* Annule toute transformation */
+            }
         }
 
         @media (min-width: 768px) {
@@ -414,18 +459,17 @@
     {{-- Section pour les styles spécifiques à la page --}}
     @stack('styles')
 </head>
-<body>
+{{-- L'attribut data-user-id est crucial pour passer l'ID utilisateur au JS --}}
+<body @auth data-user-id="{{ Auth::id() }}" @endauth>
     <div id="app">
         {{-- En-tête principal de l'application - Inspiré par la barre supérieure de WhatsApp --}}
         <header class="whatsapp-header">
             <div class="header-top">
-                {{-- L'URL '/' pointe maintenant vers les annonces du marché via la route 'home' --}}
                 <a class="app-title" href="{{ route('home') }}">
                     <i class="fab fa-whatsapp"></i> Jobela RDC
                 </a>
 
                 <ul class="navbar-nav nav-icons">
-                    {{-- Liens/icônes de navigation (search, menu) --}}
                     <li class="nav-item">
                         <a class="nav-link" href="#" title="Rechercher">
                             <i class="fas fa-search"></i>
@@ -433,7 +477,7 @@
                     </li>
                     @guest
                         @if (Route::has('login'))
-                            <li class="nav-item d-md-none"> {{-- Visible seulement sur mobile --}}
+                            <li class="nav-item d-md-none">
                                 <a class="nav-link" href="{{ route('login') }}" title="{{ __('Se connecter') }}">
                                     <i class="fas fa-sign-in-alt"></i>
                                 </a>
@@ -441,17 +485,15 @@
                         @endif
 
                         @if (Route::has('register'))
-                            <li class="nav-item d-md-none"> {{-- Visible seulement sur mobile --}}
+                            <li class="nav-item d-md-none">
                                 <a class="nav-link" href="{{ route('register') }}" title="{{ __('S\'inscrire') }}">
                                     <i class="fas fa-user-plus"></i>
                                 </a>
                             </li>
                         @endif
                     @else
-                        {{-- Menu déroulant pour l'utilisateur connecté --}}
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                {{-- Afficher l'avatar et le nom/icône --}}
                                 @php
                                     $user = Auth::user();
                                     $avatarHtml = '';
@@ -464,40 +506,34 @@
                                             $avatarSrc = $isExternal ? $avatarPath : asset('storage/' . $avatarPath);
                                             $avatarHtml = '<img src="' . $avatarSrc . '" alt="Photo de profil" class="navbar-avatar-thumbnail">';
                                         } else {
-                                            // Fallback to initials avatar if no profile picture
                                             $initials = '';
                                             if ($user->name) {
                                                 $words = explode(' ', $user->name);
                                                 foreach ($words as $word) {
                                                     $initials .= strtoupper(substr($word, 0, 1));
                                                 }
-                                                // Ensure initials are max 2 characters
                                                 if (strlen($initials) > 2) {
                                                     $initials = substr($initials, 0, 2);
                                                 }
                                             } else {
                                                 $initials = '??';
                                             }
-                                            // Generate consistent color based on user ID or email
                                             $bgColor = '#' . substr(md5($user->email ?? $user->id ?? uniqid()), 0, 6);
                                             $avatarHtml = '<div class="navbar-avatar-text-placeholder" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
                                         }
                                     } else {
-                                        // Fallback for anonymous or deleted user
                                         $avatarHtml = '<div class="navbar-avatar-text-placeholder" style="background-color: #999;"><i class="fas fa-user-circle"></i></div>';
                                     }
                                 @endphp
                                 {!! $avatarHtml !!}
                                 <span class="d-none d-md-inline">{{ Auth::user()->name ?? 'Utilisateur' }}</span>
-                                <i class="fas fa-ellipsis-v d-md-none"></i> {{-- Icône menu 3 points sur mobile --}}
+                                <i class="fas fa-ellipsis-v d-md-none"></i>
                             </a>
 
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                {{-- Liens spécifiques utilisateur --}}
                                 <a class="dropdown-item" href="{{ route('profile.index') }}">
                                     <i class="fas fa-user me-2"></i> {{ __('Mon Profil') }}
                                 </a>
-                                {{-- Nouvelle entrée pour les Annonces du Marché --}}
                                 <a class="dropdown-item" href="{{ route('listings.index') }}">
                                     <i class="fas fa-store me-2"></i> {{ __('Annonces du Marché') }}
                                 </a>
@@ -509,7 +545,6 @@
                                     <i class="fas fa-users me-2"></i> {{ __('Groupes de discussion') }}
                                 </a>
                                 <hr class="dropdown-divider">
-                                {{-- Nouveaux liens : Paramètres et Paiement --}}
                                 <a class="dropdown-item" href="{{ route('settings.index') }}">
                                     <i class="fas fa-cog me-2"></i> {{ __('Paramètres') }}
                                 </a>
@@ -517,7 +552,6 @@
                                     <i class="fas fa-gem me-2"></i> {{ __('Premium & Paiements') }}
                                 </a>
                                 <hr class="dropdown-divider">
-                                {{-- Lien de déconnexion --}}
                                 <a class="dropdown-item" href="{{ route('logout') }}"
                                    onclick="event.preventDefault();
                                                  document.getElementById('logout-form').submit();">
@@ -532,79 +566,87 @@
                 </ul>
             </div>
 
-            {{-- Barre d'onglets (DISCUSSIONS, ACTUALITÉS, APPELS) --}}
             <nav class="whatsapp-tabs">
                 <a href="{{ route('camera.index') }}" class="tab-item camera-icon" title="Ouvrir la caméra"><i class="fas fa-camera"></i></a>
-                <a href="{{ route('chats.index') }}" class="tab-item" id="tab-chats">DISCUSSIONS</a>
-                <a href="{{ route('status.index') }}" class="tab-item" id="tab-status">ACTUALITÉS</a>
-                <a href="{{ route('calls.index') }}" class="tab-item" id="tab-calls">APPELS</a>
+                <a href="{{ route('chats.index') }}" class="tab-item" id="tab-chats">
+                    DISCUSSIONS
+                    <span class="unread-badge d-none" id="chats-badge">0</span>
+                </a>
+                <a href="{{ route('status.index') }}" class="tab-item" id="tab-status">
+                    ACTUALITÉS
+                    <span class="unread-badge d-none" id="status-badge">0</span>
+                </a>
+                <a href="{{ route('calls.index') }}" class="tab-item" id="tab-calls">
+                    APPELS
+                    <span class="unread-badge d-none" id="calls-badge">0</span>
+                </a>
             </nav>
         </header>
 
-        {{-- Wrapper principal pour le contenu des pages (le contenu réel des onglets) --}}
         <main class="whatsapp-content-wrapper">
             @yield('content')
         </main>
     </div>
 
     {{-- Scripts --}}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-    {{-- Script pour passer l'ID de l'utilisateur au JavaScript global --}}
-    @auth
+    {{-- Script pour passer les données globales à JavaScript --}}
+    {{-- Ce script doit être AVANT @vite('resources/js/app.js') --}}
     <script>
-        // Rendre les données utilisateur et les routes nécessaires disponibles globalement pour JavaScript
         window.Laravel = {
-            user: {
-                id: {{ Auth::user()->id }},
-                name: "{{ Auth::user()->name }}",
-                // Ajoutez d'autres données utilisateur nécessaires ici si vous en avez besoin dans le frontend
-            },
-            // NOUVELLE SECTION POUR LES ROUTES
+            csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            user: @json(Auth::user()),
             routes: {
+                // These are for web routes or actions that are not under api group
                 chatsSearchUsers: "{{ route('chats.searchUsers') }}",
-                // AJOUTÉ: Routes pour la gestion des appels
                 callsInitiate: "{{ route('calls.initiate') }}",
                 callsAccept: "{{ route('calls.accept') }}",
                 callsReject: "{{ route('calls.reject') }}",
                 callsEnd: "{{ route('calls.end') }}",
-                callsSignal: "{{ route('calls.signal') }}"
+                callsSignal: "{{ route('calls.signal', ['call_uuid' => '__CALL_UUID__']) }}", // Ensure placeholder for UUID
+
+                // These are for API routes
+                api: {
+                    unreadChats: "{{ route('api.unread.chats') }}",
+                    unreadStatus: "{{ route('api.unread.status') }}",
+                    unreadCalls: "{{ route('api.unread.calls') }}",
+                    // ADD THESE NEW ROUTES
+                    callsHistory: "{{ route('api.calls.history') }}", // Assuming you have a route named 'api.calls.history'
+                    usersSearch: "{{ route('api.users.search') }}" // Assuming you have a route named 'api.users.search'
+                }
             }
         };
-        console.log('window.Laravel initialized:', window.Laravel); // AJOUTÉ POUR DEBUG - Vérifiez cet objet dans la console
+        console.log('window.Laravel initialized:', window.Laravel);
     </script>
-    @endauth
 
-    {{-- Votre fichier app.js compilé (qui importe calls.js et initialise Echo) --}}
+    {{-- Votre fichier app.js compilé (qui importe bootstrap.js et initialise Echo) --}}
     {{-- DOIT ÊTRE CHARGÉ APRÈS window.Laravel et AVANT les scripts spécifiques à la page --}}
-    @vite('resources/js/app.js') {{-- C'est la ligne clé pour Vite --}}
-    {{-- OU si vous utilisez Laravel Mix : <script src="{{ asset('js/app.js') }}"></script> --}}
+    @vite('resources/js/app.js')
+
+    {{-- Section pour les scripts spécifiques à la page --}}
+    @stack('scripts')
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const currentPath = window.location.pathname;
 
-            // Function to set active class based on URL
             function setActiveLink() {
-                // Remove active from all tabs and dropdown items first
                 document.querySelectorAll('.whatsapp-tabs .tab-item').forEach(item => item.classList.remove('active'));
                 document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => item.classList.remove('active'));
 
-                // Set active for tab items
-                if (currentPath.startsWith('{{ route('chats.index', [], false) }}')) { // Use startsWith for chat conversations
-                    document.getElementById('tab-chats').classList.add('active');
+                if (currentPath.startsWith('{{ route('chats.index', [], false) }}')) {
+                    document.getElementById('tab-chats')?.classList.add('active');
                 } else if (currentPath.startsWith('{{ route('status.index', [], false) }}')) {
-                    document.getElementById('tab-status').classList.add('active');
+                    document.getElementById('tab-status')?.classList.add('active');
                 } else if (currentPath.startsWith('{{ route('calls.index', [], false) }}')) {
-                    document.getElementById('tab-calls').classList.add('active');
+                    document.getElementById('tab-calls')?.classList.add('active');
                 } else if (currentPath.startsWith('{{ route('camera.index', [], false) }}')) {
-                    document.querySelector('.camera-icon').classList.add('active');
+                    document.querySelector('.camera-icon')?.classList.add('active');
                 } else if (currentPath === '{{ route('home', [], false) }}' || currentPath.startsWith('{{ route('listings.index', [], false) }}')) {
-                    // For the home/listings page, no tab might be active or you could activate 'Chats' if it's the default.
-                    // For now, no specific tab is highlighted.
+                    // No specific tab active for home/listings
                 }
 
-                // Set active for dropdown items based on their href
                 document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
                     const itemPath = new URL(item.href).pathname;
                     if (itemPath === currentPath) {
@@ -612,13 +654,63 @@
                     }
                 });
             }
-
-            // Call it on page load
             setActiveLink();
+
+            // --- Logique pour la récupération des badges de non-lecture ---
+            async function fetchUnreadCounts() {
+                if (!window.Laravel || !window.Laravel.user) {
+                    console.warn("Utilisateur non connecté ou window.Laravel non initialisé. Impossible de récupérer les comptes non lus.");
+                    return;
+                }
+
+                try {
+                    const unreadChatsResponse = await fetch(window.Laravel.routes.api.unreadChats);
+                    const unreadChatsData = await unreadChatsResponse.json();
+                    const chatsBadge = document.getElementById('chats-badge');
+                    if (chatsBadge) {
+                        if (unreadChatsData.count > 0) {
+                            chatsBadge.textContent = unreadChatsData.count;
+                            chatsBadge.classList.remove('d-none');
+                        } else {
+                            chatsBadge.classList.add('d-none');
+                        }
+                    }
+
+                    const unreadStatusResponse = await fetch(window.Laravel.routes.api.unreadStatus);
+                    const unreadStatusData = await unreadStatusResponse.json();
+                    const statusBadge = document.getElementById('status-badge');
+                    if (statusBadge) {
+                        if (unreadStatusData.count > 0) {
+                            statusBadge.textContent = unreadStatusData.count;
+                            statusBadge.classList.remove('d-none');
+                        } else {
+                            statusBadge.classList.add('d-none');
+                        }
+                    }
+
+                    const unreadCallsResponse = await fetch(window.Laravel.routes.api.unreadCalls);
+                    const unreadCallsData = await unreadCallsResponse.json();
+                    const callsBadge = document.getElementById('calls-badge');
+                    if (callsBadge) {
+                        if (unreadCallsData.count > 0) {
+                            callsBadge.textContent = unreadCallsData.count;
+                            callsBadge.classList.remove('d-none');
+                        } else {
+                            callsBadge.classList.add('d-none');
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Erreur lors de la récupération des comptes non lus:", error);
+                }
+            }
+
+            // Appeler la fonction au chargement de la page
+            fetchUnreadCounts();
+
+            // Optionnel: rafraîchir les comptes non lus régulièrement, par exemple toutes les 30 secondes
+            setInterval(fetchUnreadCounts, 30000);
         });
     </script>
-
-    {{-- Section pour les scripts spécifiques à la page --}}
-    @stack('scripts')
 </body>
 </html>

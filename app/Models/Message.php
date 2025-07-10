@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+// Assurez-vous que SEULEMENT ces lignes 'use' sont présentes pour un modèle
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,9 +14,10 @@ class Message extends Model
 
     protected $fillable = [
         'conversation_id',
-        'user_id',
+        'user_id',       // C'est l'ID de l'expéditeur (sender)
+        'receiver_id',   // <--- Assurez-vous que ceci est bien dans $fillable
         'body',
-        'type', // 'text', 'image', 'video'
+        'type',
         'read_at',
     ];
 
@@ -32,19 +34,30 @@ class Message extends Model
     }
 
     /**
-     * Le message a été envoyé par un utilisateur.
+     * Le message a été envoyé par un utilisateur (l'expéditeur).
+     * C'est la relation que votre code tente d'appeler via $message->user.
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
-     * Utilisateurs qui ont lu ce message.
+     * Le message est destiné à un utilisateur spécifique (le destinataire).
+     * Requis pour le comptage des messages non lus.
+     */
+    public function receiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'receiver_id');
+    }
+
+    /**
+     * Utilisateurs qui ont lu ce message (pour les conversations de groupe, si applicable).
      */
     public function readBy(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'message_user', 'message_id', 'user_id')
-                    ->withTimestamps();
+        return $this->belongsToMany(User::class, 'message_user_reads', 'message_id', 'user_id')
+                     ->withPivot('read_at')
+                     ->withTimestamps();
     }
 }
