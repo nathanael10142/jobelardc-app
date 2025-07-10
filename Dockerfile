@@ -57,17 +57,17 @@ RUN echo "--- Content of manifest.json ---" && cat /var/www/html/public/build/ma
 RUN echo "--- Content of calls.js ---" && cat /var/www/html/resources/js/calls.js || echo "calls.js not found"
 RUN echo "--- Apache conf ---" && cat /etc/apache2/sites-available/000-default.conf
 
-# Copier start.sh, convertir en Unix, donner les droits et changer propriétaire
-COPY start.sh /usr/local/bin/start.sh
-RUN dos2unix /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/start.sh
-RUN chown www-data:www-data /usr/local/bin/start.sh
-RUN echo "--- Permissions for start.sh ---" && ls -l /usr/local/bin/start.sh
+# Copier start.sh dans /var/www/html, convertir en Unix, donner les droits et changer propriétaire
+COPY start.sh /var/www/html/start.sh
+RUN dos2unix /var/www/html/start.sh
+RUN chmod +x /var/www/html/start.sh
+RUN chown www-data:www-data /var/www/html/start.sh
+RUN echo "--- Permissions for start.sh ---" && ls -l /var/www/html/start.sh
 
 EXPOSE 80
 
 # Passer à l’utilisateur www-data
 USER www-data
 
-# Lancement du conteneur via le script start.sh directement (doit être exécutable)
-CMD ["/usr/local/bin/start.sh"]
+# Lancement du conteneur via le script start.sh dans /var/www/html
+CMD ["/var/www/html/start.sh"]
