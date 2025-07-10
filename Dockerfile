@@ -101,4 +101,4 @@ USER www-data
 
 # Définir la commande d'entrée principale pour le conteneur
 # Utilise votre script start.sh comme point d'entrée
-CMD ["/usr/local/bin/start.sh"]
+CMD ["sh", "/usr/local/bin/start.sh"]
