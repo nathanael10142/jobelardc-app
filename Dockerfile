@@ -89,10 +89,15 @@ RUN echo "--- Content of /etc/apache2/sites-available/000-default.conf ---" && c
 COPY start.sh /usr/local/bin/start.sh
 RUN dos2unix /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
+# Changer le propriétaire du script de démarrage à www-data
+RUN chown www-data:www-data /usr/local/bin/start.sh
 RUN echo "--- Permissions for start.sh ---" && ls -l /usr/local/bin/start.sh
 
 # Exposer le port 80 (Apache par défaut)
 EXPOSE 80
+
+# Changer l'utilisateur à www-data pour l'exécution du CMD
+USER www-data
 
 # Définir la commande d'entrée principale pour le conteneur
 # Utilise votre script start.sh comme point d'entrée
