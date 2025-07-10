@@ -33,7 +33,6 @@ fi
 # Créer le lien symbolique pour le stockage public.
 # Essentiel si vous stockez des fichiers uploadés (avatars, etc.) localement.
 echo "3. Création du lien symbolique pour le stockage public..."
-php artisan storage:link --force
 if [ $? -ne 0 ]; then
   echo "AVERTISSEMENT: La création du lien de stockage a échoué. Les fichiers uploadés pourraient ne pas être accessibles."
   # Ne pas sortir ici, car ce n'est pas toujours critique pour le démarrage de l'app.
