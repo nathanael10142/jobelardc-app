@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     nodejs \
     npm \
+    dos2unix \
     # Nettoie les fichiers de cache apt pour réduire la taille de l'image.
     && rm -rf /var/lib/apt/lists/*
 
@@ -86,7 +87,9 @@ RUN echo "--- Content of /etc/apache2/sites-available/000-default.conf ---" && c
 # Copier le script de démarrage et le rendre exécutable
 # Placé dans /usr/local/bin qui est dans le PATH par défaut.
 COPY start.sh /usr/local/bin/start.sh
+RUN dos2unix /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
+RUN echo "--- Permissions for start.sh ---" && ls -l /usr/local/bin/start.sh
 
 # Exposer le port 80 (Apache par défaut)
 EXPOSE 80
