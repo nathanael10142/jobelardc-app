@@ -31,14 +31,21 @@ COPY composer.json composer.lock ./
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --optimize-autoloader --no-dev --no-scripts
 
-# Installer les dépendances JS
+# NOUVEL ORDRE POUR LES DÉPENDANCES JS ET LE BUILD VITE
+# Copier package.json et package-lock.json pour optimiser le cache Docker
 COPY package.json package-lock.json ./
-RUN npm install
 
-# Copier tout le code source
+# Copier TOUT le code source AVANT d'installer les dépendances JS
+# Ceci est crucial pour que npm install et vite build puissent voir tous les fichiers source
 COPY . .
 
+# Installer les dépendances JS (maintenant que tous les fichiers source sont là)
+# Utiliser --omit=dev pour les dépendances de production uniquement
+# Et vider le cache npm pour éviter les problèmes de résolution
+RUN npm install --omit=dev && npm cache clean --force
+
 # Compiler les assets frontend avec Vite
+# Le build devrait maintenant trouver toutes les dépendances et modules
 RUN npm run build
 
 # Créer le lien symbolique storage:link en root (au build time)
