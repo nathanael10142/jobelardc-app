@@ -1,155 +1,208 @@
-<?php use Illuminate\Support\Str; ?>
+<?php
+use Illuminate\Support\Str;
+?>
 @extends('layouts.user')
 
-{{-- MODIFICATION ICI : Le titre doit être générique pour la page d'index des chats --}}
-@section('title', 'Mes Discussions - Jobela RDC') 
+@section('title', 'Discussion avec ' . ($conversation->is_group ? ($conversation->name ?: 'Groupe de discussion') : ($conversation->users->first(fn($u) => $u->id !== Auth::id())->name ?? 'Utilisateur inconnu')) . ' - Jobela RDC')
 
 @section('content')
-<div id="customAlert" class="alert alert-danger fixed-top text-center" style="display:none; z-index:9999; margin-top: 20px;">
-    <span id="customAlertMessage"></span>
-    <button type="button" class="btn-close" onclick="document.getElementById('customAlert').style.display='none';" aria-label="Close"></button>
-</div>
-
-<div class="content-section p-3" id="main-chats-content">
-    <h5 class="mb-3 whatsapp-heading">
-        <i class="fas fa-comments me-2"></i> Mes Discussions
-    </h5>
-
-    <form id="chatSearchForm" class="whatsapp-search-form flex-grow-1 me-3">
-        <div class="input-group">
-            <input type="text" name="search" id="chatSearchInput" class="form-control whatsapp-search-input" placeholder="{{ __('Rechercher discussions ou contacts...') }}" value="{{ request('search') }}">
-            <button class="btn whatsapp-search-btn" type="submit">
-                <i class="fas fa-search"></i>
-            </button>
-        </div>
-    </form>
-
-    <div class="d-flex justify-content-end align-items-center mb-3">
-        <a href="#" class="btn btn-whatsapp-primary rounded-pill px-4 shadow-sm flex-shrink-0" data-bs-toggle="modal" data-bs-target="#createConversationModal">
-            <i class="fas fa-plus me-2"></i> Nouvelle Discussion
-        </a>
+    {{-- ALERTE PERSONNALISÉE : Assurez-vous que ce bloc est présent dans layouts/user.blade.php ou ici --}}
+    <div id="customAlert" class="alert alert-danger fixed-top text-center" style="display:none; z-index:9999; margin-top: 20px;">
+        <span id="customAlertMessage"></span>
+        <button type="button" class="btn-close" onclick="document.getElementById('customAlert').style.display='none';" aria-label="Close"></button>
     </div>
+    {{-- FIN ALERTE PERSONNALISÉE --}}
 
-    <div class="chats-container" id="chatsList">
-        @forelse ($conversations as $conversation)
-            @php
-                $displayAvatarHtml = '';
-                $displayName = '';
-                $lastMessageBody = $conversation->lastMessage ? $conversation->lastMessage->body : 'Aucun message';
-                $lastMessageTime = $conversation->lastMessage ? $conversation->lastMessage->created_at->format('H:i') : '';
-                $unreadCount = $conversation->unread_messages_count ?? 0;
+    <div class="chat-container">
+        <div class="chat-header p-3 d-flex align-items-center">
+            <a href="{{ route('chats.index') }}" class="back-button me-3">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="chat-avatar-wrapper me-3">
+                @php
+                    $displayAvatarHtml = '';
+                    $displayName = '';
+                    $isGroup = $conversation->is_group;
 
-                if ($conversation->is_group) {
-                    $displayName = $conversation->name ?: 'Groupe de discussion';
-                    $displayAvatarHtml = '<div class="avatar-group-placeholder"><i class="fas fa-users"></i></div>';
-                } else {
-                    $otherParticipant = $conversation->users->first(fn($u) => $u->id !== Auth::id());
-
-                    if ($otherParticipant) {
-                        $displayName = $otherParticipant->name;
-                        $avatarPath = $otherParticipant->profile_picture ?? null;
-                        $isExternalAvatar = $avatarPath && Str::startsWith($avatarPath, ['http://', 'https://']);
-
-                        if ($avatarPath) {
-                            $avatarSrc = $isExternalAvatar ? $avatarPath : asset('storage/' . $avatarPath);
-                            $displayAvatarHtml = '<img src="' . $avatarSrc . '" alt="Photo de profil de ' . $otherParticipant->name . '" class="avatar-thumbnail">';
-                        } else {
-                            $initials = '';
-                            if ($otherParticipant->name) {
-                                $words = explode(' ', $otherParticipant->name);
-                                foreach ($words as $word) {
-                                    $initials .= strtoupper(substr($word, 0, 1));
-                                }
-                                if (strlen($initials) > 2) {
-                                    $initials = substr($initials, 0, 2);
-                                }
-                            } else {
-                                $initials = '??';
-                            }
-                            $bgColor = '#' . substr(md5($otherParticipant->email ?? $otherParticipant->id ?? uniqid()), 0, 6);
-                            $displayAvatarHtml = '<div class="avatar-text-placeholder" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
-                        }
+                    if ($isGroup) {
+                        $displayName = $conversation->name ?: 'Groupe de discussion';
+                        $displayAvatarHtml = '<div class="avatar-group-placeholder"><i class="fas fa-users"></i></div>';
                     } else {
-                        $displayName = 'Utilisateur inconnu';
-                        $displayAvatarHtml = '<div class="avatar-text-placeholder" style="background-color: #777;">??</div>';
+                        $otherParticipant = $conversation->users->first(fn($u) => $u->id !== Auth::id());
+
+                        if ($otherParticipant) {
+                            $displayName = $otherParticipant->name;
+                            $avatarPath = $otherParticipant->profile_picture ?? null;
+                            $isExternalAvatar = $avatarPath && Str::startsWith($avatarPath, ['http://', 'https://']);
+
+                            if ($avatarPath) {
+                                $avatarSrc = $isExternalAvatar ? $avatarPath : asset('storage/' . $avatarPath);
+                                $displayAvatarHtml = '<img src="' . $avatarSrc . '" alt="Photo de profil de ' . $otherParticipant->name . '" class="avatar-chat-header">';
+                            } else {
+                                $initials = '';
+                                if ($otherParticipant->name) {
+                                    $words = explode(' ', $otherParticipant->name);
+                                    foreach ($words as $word) {
+                                        $initials .= strtoupper(substr($word, 0, 1));
+                                    }
+                                    if (strlen($initials) > 2) {
+                                        $initials = substr($initials, 0, 2);
+                                    }
+                                } else {
+                                    $initials = '??';
+                                }
+                                $bgColor = '#' . substr(md5($otherParticipant->email ?? $otherParticipant->id ?? uniqid()), 0, 6);
+                                $displayAvatarHtml = '<div class="avatar-text-placeholder-small" style="background-color: ' . $bgColor . ';">' . $initials . '</div>';
+                            }
+                        } else {
+                            $displayName = 'Utilisateur inconnu';
+                            $displayAvatarHtml = '<div class="avatar-text-placeholder-small" style="background-color: #777;">??</div>';
+                        }
                     }
-                }
-            @endphp
-            <a href="{{ route('chats.show', $conversation->id) }}" class="card chat-card mb-3 shadow-sm">
-                <div class="card-body p-3 d-flex align-items-center">
-                    {!! $displayAvatarHtml !!}
-                    <div class="flex-grow-1 ms-3 overflow-hidden">
-                        <h6 class="profile-name mb-0">{{ $displayName }}</h6>
-                        <p class="last-message text-muted mb-0 text-truncate">{{ $lastMessageBody }}</p>
-                    </div>
-                    <div class="ms-auto text-end flex-shrink-0">
-                        <small class="message-time d-block">{{ $lastMessageTime }}</small>
-                        @if ($unreadCount > 0)
-                            <span class="badge bg-success rounded-pill mt-1">{{ $unreadCount }}</span>
+                @endphp
+                {!! $displayAvatarHtml !!}
+            </div>
+            <div class="chat-title flex-grow-1">
+                <h5 class="mb-0">{{ $displayName }}</h5>
+                @if($isGroup)
+                    <small class="text-white-75 participants-list">
+                        @foreach($conversation->users->take(3) as $user)
+                            {{ $user->name }}{{ !$loop->last ? ', ' : '' }}
+                        @endforeach
+                        @if($conversation->users->count() > 3)
+                            ... ({{ $conversation->users->count() }} membres)
                         @endif
+                    </small>
+                @endif
+            </div>
+            <div class="chat-actions">
+                <a href="#" class="icon-button"><i class="fas fa-video"></i></a>
+                <a href="#" class="icon-button"><i class="fas fa-phone-alt"></i></a>
+                <a href="#" class="icon-button"><i class="fas fa-ellipsis-v"></i></a>
+            </div>
+        </div>
+
+        <div class="chat-messages p-3" id="chatMessages">
+            @forelse ($messages as $message)
+                @php
+                    $messageSender = $message->user;
+                    $messageSenderAvatarHtml = '';
+                    $senderBgColor = '#' . substr(md5($messageSender->email ?? $messageSender->id ?? uniqid()), 0, 6);
+
+                    $isSenderExternalAvatar = $messageSender->profile_picture && Str::startsWith($messageSender->profile_picture, ['http://', 'https://']);
+
+                    if ($messageSender->profile_picture) {
+                        $messageSenderAvatarSrc = $isSenderExternalAvatar ? $messageSender->profile_picture : asset('storage/' . $messageSender->profile_picture);
+                        $messageSenderAvatarHtml = '<img src="' . $messageSenderAvatarSrc . '" alt="Photo de profil de ' . $messageSender->name . '" class="message-sender-avatar">';
+                    } else {
+                        $initials = '';
+                        if ($messageSender->name) {
+                            $words = explode(' ', $messageSender->name);
+                            foreach ($words as $word) {
+                                $initials .= strtoupper(substr($word, 0, 1));
+                            }
+                            if (strlen($initials) > 2) {
+                                $initials = substr($initials, 0, 2);
+                            }
+                        } else {
+                            $initials = '??';
+                        }
+                        $messageSenderAvatarHtml = '<div class="message-sender-avatar-placeholder" style="background-color: ' . $senderBgColor . ';">' . $initials . '</div>';
+                    }
+                @endphp
+
+                <div class="message-bubble {{ $message->user_id === Auth::id() ? 'sent' : 'received' }}" data-message-id="{{ $message->id }}">
+                    @if($conversation->is_group && $message->user_id !== Auth::id())
+                        <div class="message-sender-avatar-container me-2">
+                            {!! $messageSenderAvatarHtml !!}
+                        </div>
+                    @endif
+                    <div class="message-content">
+                        @if($conversation->is_group && $message->user_id !== Auth::id())
+                            <div class="message-sender-name" style="color: {{ $senderBgColor }};">
+                                {{ $message->user->name }}
+                            </div>
+                        @endif
+                        <p class="mb-0">{{ $message->body }}</p>
+                        <small class="message-time">
+                            {{ $message->created_at->format('H:i') }}
+                            @if($message->user_id === Auth::id())
+                                <i class="fas fa-check-double ms-1 {{ $message->read_at ? 'text-whatsapp-blue-seen' : 'text-muted' }}" data-read-receipt="{{ $message->id }}"></i>
+                            @endif
+                        </small>
                     </div>
                 </div>
-            </a>
-        @empty
-            <div class="alert alert-info text-center whatsapp-card" role="alert">
-                <i class="fas fa-info-circle me-2"></i> Aucune discussion trouvée.
-            </div>
-        @endforelse
-    </div>
-</div>
+            @empty
+                <div class="alert alert-info text-center" id="noMessagesAlert">
+                    <i class="fas fa-comments fa-3x mb-3"></i>
+                    <p>Commencez la discussion en envoyant votre premier message !</p>
+                </div>
+            @endforelse
+        </div>
 
-{{-- Modal pour créer une nouvelle conversation --}}
-<div class="modal fade" id="createConversationModal" tabindex="-1" aria-labelledby="createConversationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content whatsapp-card">
-            <div class="modal-header whatsapp-heading-modal">
-                <h5 class="modal-title" id="createConversationModalLabel">Nouvelle Discussion</h5>
-                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createConversationForm">
-                    <div class="mb-3">
-                        <label for="userSearchInput" class="form-label">Rechercher un utilisateur:</label>
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control whatsapp-search-input" id="userSearchInput" placeholder="Nom ou email...">
-                            <button class="btn whatsapp-search-btn" type="button" id="clearUserSearchButton"><i class="fas fa-times"></i></button>
-                        </div>
-                        <div class="list-group" id="userListForConversation">
-                            <p class="text-muted text-center p-2">Commencez à taper pour rechercher des utilisateurs...</p>
-                        </div>
-                        <input type="hidden" name="recipient_id" id="selectedUserId">
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-whatsapp-primary" id="startNewChatButton" disabled><i class="fas fa-comment-dots me-2"></i> Démarrer la Discussion</button>
-                    </div>
-                </form>
-            </div>
+        <div class="chat-input-area p-3">
+            <form id="messageForm" action="{{ route('chats.sendMessage', $conversation->id) }}" method="POST" class="d-flex align-items-center">
+                @csrf
+                <textarea name="body" class="form-control me-2 chat-textarea" placeholder="Tapez votre message..." rows="1" required></textarea>
+                <button type="submit" class="btn btn-whatsapp-send rounded-circle p-2">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
         </div>
     </div>
-</div>
-
 @endsection
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pusher-js@8.0.1/dist/web/pusher.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.11.0/dist/echo.iife.js"></script>
+
 <script>
-    function showCustomAlert(message, type = 'info') {
-        const alertDiv = document.getElementById('customAlert');
-        const alertMessageSpan = document.getElementById('customAlertMessage');
-        if (alertDiv && alertMessageSpan) {
-            alertMessageSpan.textContent = message;
-            alertDiv.className = `alert alert-${type} fixed-top text-center`;
-            alertDiv.style.display = 'block';
-            setTimeout(() => {
-                alertDiv.style.display = 'none';
-            }, 5000);
-        } else {
-            console.warn('Custom alert element not found. Displaying standard alert:', message);
-            alert(message);
+    // Initialisation de Pusher et Echo directement dans ce script
+    window.Pusher = Pusher;
+    window.Echo = new Echo({
+        broadcaster: 'pusher',
+        key: '{{ config('broadcasting.connections.pusher.key') }}',
+        cluster: '{{ config('broadcasting.connections.pusher.options.cluster') }}',
+        forceTLS: true,
+        authEndpoint: '/broadcasting/auth',
+        authorizer: (channel, options) => {
+            return {
+                authorize: (socketId, callback) => {
+                    axios.post('/broadcasting/auth', {
+                        socket_id: socketId,
+                        channel_name: channel.name
+                    }, {
+                        withCredentials: true
+                    })
+                    .then(response => callback(null, response.data))
+                    .catch(error => {
+                        console.error('Erreur d\'autorisation Broadcasting:', error);
+                        callback(new Error('Échec de l\'authentification Broadcasting.'), null);
+                    });
+                }
+            };
+        },
+    });
+
+    // --- Ajout pour le débogage de la connexion Pusher ---
+    window.Echo.connector.pusher.connection.bind('connected', () => {
+        console.log('Pusher connection established successfully for chat!');
+    });
+    window.Echo.connector.pusher.connection.bind('disconnected', () => {
+        console.warn('Pusher connection disconnected for chat.');
+    });
+    window.Echo.connector.pusher.connection.bind('error', (err) => {
+        console.error('Pusher connection error for chat:', err);
+        if (err.error && err.error.data && err.error.data.code === 4004) {
+            console.error('Pusher error 4004: App key not found. Check your PUSHER_APP_KEY in .env and Pusher dashboard.');
+        } else if (err.error && err.error.data && err.error.data.code === 4005) {
+            console.error('Pusher error 4005: Cluster not found. Check PUSHER_APP_CLUSTER.');
+        } else if (err.error && err.error.data && err.error.data.code === 4009) {
+            console.error('Pusher error 4009: Connection not authorized. Check /broadcasting/auth route and authentication.');
         }
-    }
-    // Rendre la fonction accessible globalement via l'objet window
-    window.showCustomAlert = showCustomAlert;
+    });
+    // --- Fin de l'ajout pour le débogage ---
 
 
     function md5(str) {
@@ -162,140 +215,218 @@
         return (hash >>> 0).toString(16).padStart(8, '0');
     }
 
-    function getInitials(name) {
-        if (!name) return '?';
-        const parts = name.split(' ');
-        if (parts.length > 1) {
-            return (parts[0][0] + parts[1][0]).toUpperCase();
-        }
-        return name[0].toUpperCase();
-    }
-
-    const userSearchInput = document.getElementById('userSearchInput');
-    const userListForConversation = document.getElementById('userListForConversation');
-    const selectedUserIdInput = document.getElementById('selectedUserId');
-    const startNewChatButton = document.getElementById('startNewChatButton');
-    const createConversationForm = document.getElementById('createConversationForm');
-    const clearUserSearchButton = document.getElementById('clearUserSearchButton');
-    const chatSearchInput = document.getElementById('chatSearchInput');
-    const chatsList = document.getElementById('chatsList');
-
-
-    const debounce = (func, delay) => {
-        let timeout;
-        return function(...args) {
-            const context = this;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(context, args), delay);
-        };
-    };
-
-    const fetchUsersForNewConversation = debounce(async (query) => {
-        if (query.length < 2) {
-            userListForConversation.innerHTML = '<p class="text-muted text-center p-2">Commencez à taper pour rechercher des utilisateurs...</p>';
-            startNewChatButton.disabled = true;
-            selectedUserIdInput.value = '';
-            return;
-        }
-
-        try {
-            const response = await axios.get(`{{ route('chats.searchUsers') }}?query=${query}`);
-            const users = response.data;
-            renderUserListForConversation(users);
-        } catch (error) {
-            console.error('Erreur lors de la recherche d\'utilisateurs:', error);
-            userListForConversation.innerHTML = '<p class="text-danger text-center p-2">Erreur de chargement des utilisateurs.</p>';
-        }
-    }, 300);
-
-    function renderUserListForConversation(users) {
-        userListForConversation.innerHTML = '';
-        if (users.length === 0) {
-            userListForConversation.innerHTML = '<p class="text-muted text-center p-2">Aucun utilisateur trouvé.</p>';
-            return;
-        }
-
-        users.forEach(user => {
-            const avatarHtml = user.profile_picture
-                ? `<img src="${user.profile_picture}" alt="${user.name}" class="avatar-thumbnail me-3" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">`
-                : `<div class="avatar-text-placeholder bg-primary me-3" style="width: 40px; height: 40px; font-size: 1.2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: ${user.avatar_bg_color || '#ccc'};">${user.initials}</div>`;
-
-            const listItem = document.createElement('a');
-            listItem.href = "#";
-            listItem.className = 'list-group-item list-group-item-action d-flex align-items-center';
-            listItem.dataset.userId = user.id;
-            listItem.innerHTML = `
-                ${avatarHtml}
-                <span class="user-name">${user.name}</span>
-            `;
-            listItem.addEventListener('click', (e) => {
-                e.preventDefault();
-                document.querySelectorAll('#userListForConversation .list-group-item').forEach(item => item.classList.remove('active'));
-                listItem.classList.add('active');
-                selectedUserIdInput.value = user.id;
-                startNewChatButton.disabled = false;
-                userSearchInput.value = user.name; // Remplir l'input avec le nom sélectionné
-                userListForConversation.innerHTML = ''; // Cacher la liste après sélection
-            });
-            userListForConversation.appendChild(listItem);
-        });
-    }
-
-    createConversationForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const recipientId = selectedUserIdInput.value;
-
-        if (!recipientId) {
-            showCustomAlert('Veuillez sélectionner un utilisateur.', 'warning');
-            return;
-        }
-
-        try {
-            const response = await axios.post(`{{ route('chats.createConversation') }}`, {
-                recipient_id: recipientId
-            });
-
-            if (response.data.success) {
-                showCustomAlert(response.data.message, 'success');
-                if (response.data.redirect_to_existing_chat) {
-                    window.location.href = response.data.redirect_to_existing_chat;
+    function getAvatarHtml(user, isGroup, size = '30px', fontSize = '0.8rem') {
+        let avatarHtml = '';
+        if (isGroup) {
+            avatarHtml = `<div class="message-sender-avatar-placeholder" style="background-color: #777;"><i class="fas fa-users"></i></div>`;
+        } else if (user && user.profile_picture) {
+            const isExternal = user.profile_picture.startsWith('http://') || user.profile_picture.startsWith('https://');
+            const avatarSrc = isExternal ? user.profile_picture : "{{ asset('storage/') }}" + '/' + user.profile_picture;
+            avatarHtml = `<img src="${avatarSrc}" alt="Photo de profil" class="message-sender-avatar">`;
+        } else if (user) {
+            let initials = '';
+            if (user.name) {
+                const words = user.name.split(' ');
+                words.forEach(word => {
+                    initials += word.substring(0, 1).toUpperCase();
+                });
+                if (initials.length > 2) {
+                    initials = initials.substring(0, 2);
                 }
             } else {
-                showCustomAlert(response.data.message, 'danger');
+                initials = '??';
             }
-        } catch (error) {
-            console.error('Erreur lors de la création de la discussion:', error);
-            showCustomAlert('Erreur lors de la création de la discussion. Veuillez réessayer.', 'danger');
+            const bgColor = '#' + md5(user.email || user.id || 'default').substring(0, 6);
+            avatarHtml = `<div class="message-sender-avatar-placeholder" style="background-color: ${bgColor};">${initials}</div>`;
+        } else {
+            avatarHtml = `<div class="message-sender-avatar-placeholder" style="background-color: #999;"><i class="fas fa-user-circle"></i></div>`;
+        }
+        return avatarHtml;
+    }
+
+    function scrollToBottom() {
+        var chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', scrollToBottom);
+
+    document.addEventListener('input', function (event) {
+        if (event.target.classList.contains('chat-textarea')) {
+            event.target.style.height = 'auto';
+            event.target.style.height = (event.target.scrollHeight) + 'px';
         }
     });
 
-    userSearchInput.addEventListener('input', (e) => fetchUsersForNewConversation(e.target.value));
+    document.getElementById('messageForm').addEventListener('submit', function(e) {
+        e.preventDefault();
 
-    clearUserSearchButton.addEventListener('click', () => {
-        userSearchInput.value = '';
-        userListForConversation.innerHTML = '<p class="text-muted text-center p-2">Commencez à taper pour rechercher des utilisateurs...</p>';
-        selectedUserIdInput.value = '';
-        startNewChatButton.disabled = true;
+        let form = this;
+        let textarea = form.querySelector('textarea[name="body"]');
+        let messageBody = textarea.value.trim();
+
+        if (messageBody === '') {
+            return;
+        }
+
+        const messageTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Générer un ID temporaire unique pour le message optimiste
+        const tempMessageId = 'temp-' + Date.now(); 
+
+        const chatMessagesDiv = document.getElementById('chatMessages');
+        const noMessagesAlert = document.getElementById('noMessagesAlert');
+
+        if (noMessagesAlert) {
+            noMessagesAlert.remove();
+        }
+
+        // --- MISE À JOUR OPTIMISTE POUR L'EXPÉDITEUR : Affichage immédiat ---
+        let newMessageHtml = `
+            <div class="message-bubble sent" data-message-id="${tempMessageId}">
+                <div class="message-content">
+                    <p class="mb-0">${messageBody}</p>
+                    <small class="message-time">
+                        ${messageTime}
+                        <i class="fas fa-check-double ms-1 text-muted" data-read-receipt="${tempMessageId}"></i>
+                    </small>
+                </div>
+            </div>
+        `;
+
+        chatMessagesDiv.insertAdjacentHTML('beforeend', newMessageHtml);
+        scrollToBottom();
+
+        textarea.value = '';
+        textarea.style.height = 'auto';
+
+        axios.post(form.action, { body: messageBody })
+            .then(response => {
+                const realMessageId = response.data.message.id;
+                // Trouver la bulle optimiste et mettre à jour son ID réel
+                const tempBubble = document.querySelector(`[data-message-id="${tempMessageId}"]`);
+                if (tempBubble) {
+                    tempBubble.setAttribute('data-message-id', realMessageId);
+                    const readReceiptIcon = tempBubble.querySelector('[data-read-receipt]');
+                    if (readReceiptIcon) {
+                        readReceiptIcon.setAttribute('data-read-receipt', realMessageId);
+                        // L'icône reste 'text-muted' (non lue) jusqu'à ce que le destinataire la lise.
+                    }
+                }
+                console.log('Message envoyé avec succès. ID réel mis à jour:', realMessageId);
+            })
+            .catch(error => {
+                console.error('Erreur d\'envoi du message:', error);
+                window.showCustomAlert('Erreur lors de l\'envoi du message. Veuillez réessayer.', 'danger');
+                // Supprimer le message optimiste en cas d'échec de l'envoi
+                const tempBubble = document.querySelector(`[data-message-id="${tempMessageId}"]`);
+                if (tempBubble) {
+                    tempBubble.remove(); 
+                }
+            });
     });
 
-    // Handle search on chat index page
-    chatSearchInput.addEventListener('input', debounce(async (e) => {
-        const searchQuery = e.target.value;
-        try {
-            const response = await axios.get(`{{ route('chats.index') }}?search=${searchQuery}`);
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(response.data, 'text/html');
-            const newChatsListContent = doc.getElementById('chatsList').innerHTML;
-            chatsList.innerHTML = newChatsListContent;
-        } catch (error) {
-            console.error('Erreur lors de la recherche de discussions:', error);
-            showCustomAlert('Erreur lors de la recherche de discussions.', 'danger');
+    document.addEventListener('DOMContentLoaded', function() {
+        const conversationId = {{ $conversation->id }};
+        const currentUserId = {{ Auth::id() }};
+        const chatMessagesDiv = document.getElementById('chatMessages');
+        const noMessagesAlert = document.getElementById('noMessagesAlert');
+        const isGroupConversation = {{ $conversation->is_group ? 'true' : 'false' }};
+
+        // Demander la permission de notification
+        if (Notification.permission === "default") {
+            Notification.requestPermission();
         }
-    }, 300));
+
+        window.Echo.private(`conversations.${conversationId}`)
+            .listen('MessageSent', (e) => {
+                console.log('Nouveau message reçu:', e.message);
+
+                // --- IMPORTANT : Ignorer le message si c'est l'expéditeur lui-même ---
+                // Le message de l'expéditeur est déjà affiché de manière optimiste.
+                if (e.message.user_id === currentUserId) {
+                    console.log('Message auto-envoyé détecté via WebSocket. Ignoré car déjà affiché de manière optimiste.');
+                    return; 
+                }
+                // --- FIN IMPORTANT ---
+
+                // Si l'alerte "aucun message" est présente, la supprimer
+                const currentNoMessagesAlert = document.getElementById('noMessagesAlert');
+                if (currentNoMessagesAlert) {
+                    currentNoMessagesAlert.remove();
+                }
+
+                let senderAvatarHtml = '';
+                let senderNameHtml = '';
+
+                const sender = e.message.user;
+                const senderColor = '#' + md5(sender.email || sender.id || 'default').substring(0, 6);
+
+                senderAvatarHtml = getAvatarHtml(sender, isGroupConversation);
+
+                if (isGroupConversation && e.message.user_id !== currentUserId) {
+                    senderNameHtml = `<div class="message-sender-name" style="color: ${senderColor};">${sender.name}</div>`;
+                }
+
+                const receivedTime = new Date(e.message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                let messageReceivedHtml = `
+                    <div class="message-bubble received" data-message-id="${e.message.id}">
+                        ${ isGroupConversation && e.message.user_id !== currentUserId ? `<div class="message-sender-avatar-container me-2">${senderAvatarHtml}</div>` : '' }
+                        <div class="message-content">
+                            ${ isGroupConversation && e.message.user_id !== currentUserId ? senderNameHtml : '' }
+                            <p class="mb-0">${e.message.body}</p>
+                            <small class="message-time">${receivedTime}</small>
+                        </div>
+                    </div>
+                `;
+
+                chatMessagesDiv.insertAdjacentHTML('beforeend', messageReceivedHtml);
+                scrollToBottom();
+
+                // Notification visuelle (uniquement si le message n'est PAS de l'utilisateur actuel)
+                if (Notification.permission === "granted") {
+                    new Notification(`Nouveau message de ${sender.name}`, {
+                        body: e.message.body,
+                        icon: sender.profile_picture ? (sender.profile_picture.startsWith('http') ? sender.profile_picture : "{{ asset('storage/') }}" + '/' + sender.profile_picture) : 'https://placehold.co/48x48/ccc/white?text=DM'
+                    });
+                }
+
+                // Notification sonore (uniquement si le message n'est PAS de l'utilisateur actuel)
+                const audio = new Audio('/audio/whatsapp_notification.mp3');
+                audio.play().catch(e => console.error("Erreur lecture son de notification:", e));
+                
+                // Marquer le message comme lu côté serveur (uniquement si le message n'est PAS de l'utilisateur actuel)
+                axios.post(`/messages/${e.message.id}/read`)
+                    .then(response => {
+                        console.log('Message marqué comme lu côté serveur.');
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors du marquage du message comme lu:', error);
+                    });
+            })
+            .listen('MessageRead', (e) => {
+                console.log('Message lu événement reçu:', e.messageId, 'par l\'utilisateur', e.readerId);
+
+                if (e.readerId !== currentUserId) { // S'assurer que c'est un accusé de lecture d'un autre utilisateur
+                    const readReceiptIcon = document.querySelector(`.message-bubble.sent[data-message-id="${e.messageId}"] .fa-check-double`);
+                    if (readReceiptIcon) {
+                        readReceiptIcon.classList.remove('text-muted');
+                        readReceiptIcon.classList.add('text-whatsapp-blue-seen');
+                        console.log(`Accusé de lecture mis à jour pour le message ${e.messageId}.`);
+                    }
+                }
+            })
+            .error((error) => {
+                console.error('Erreur lors de l\'écoute du canal de conversation:', error);
+            });
+    });
 
 </script>
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/chat.css') }}">
+{{-- Charge chat.css spécifiquement pour cette page via Vite --}}
+@vite('resources/css/chat.css')
 @endpush
