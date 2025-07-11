@@ -10,19 +10,16 @@ use App\Events\CallInitiated;
 use App\Events\CallAccepted;
 use App\Events\CallRejected;
 use App\Events\CallEnded;
-use App\Events\CallSignal; // Cet événement va gérer l'échange de SDP et ICE
+use App\Events\CallSignal;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Symfony\Component\HttpFoundation\Response; // Pour les codes HTTP plus lisibles
+use Symfony\Component\HttpFoundation\Response;
 
 class CallController extends Controller
 {
     public function __construct()
     {
-        // Middleware pour les routes API (utilisant Sanctum pour l'authentification API)
-        // 'searchContacts' a été retiré car cette méthode a été déplacée vers UserController
         $this->middleware('auth:sanctum')->only(['initiate', 'accept', 'reject', 'end', 'signal', 'indexApi']);
-        // Middleware pour les routes web (utilisant l'authentification basée sur la session)
         $this->middleware('auth')->only(['index']);
     }
 
@@ -39,15 +36,15 @@ class CallController extends Controller
         $user = Auth::user();
         $searchQuery = $request->input('search');
 
-        $calls = collect([]); // Initialiser avec une collection vide
+        $calls = collect([]);
 
         try {
             $callsQuery = Call::where(function ($query) use ($user) {
                                 $query->where('caller_id', $user->id)
-                                      ->orWhere('receiver_id', $user->id);
+                                    ->orWhere('receiver_id', $user->id);
                             })
-                            ->with(['caller', 'receiver']) // Charger les relations pour l'affichage
-                            ->latest(); // Trier par les appels les plus récents
+                            ->with(['caller', 'receiver'])
+                            ->latest();
 
             if ($searchQuery) {
                 $callsQuery->where(function ($query) use ($searchQuery) {
@@ -59,7 +56,7 @@ class CallController extends Controller
                 });
             }
 
-            $calls = $callsQuery->get(); // Récupérer les appels
+            $calls = $callsQuery->get();
 
         } catch (\Exception $e) {
             Log::error("Erreur lors de la récupération des appels dans CallController@index: " . $e->getMessage(), ['exception' => $e]);
@@ -85,10 +82,10 @@ class CallController extends Controller
         try {
             $callsQuery = Call::where(function ($query) use ($user) {
                                 $query->where('caller_id', $user->id)
-                                      ->orWhere('receiver_id', $user->id);
+                                    ->orWhere('receiver_id', $user->id);
                             })
-                            ->with(['caller', 'receiver']) // Charger les relations pour l'affichage
-                            ->latest(); // Trier par les appels les plus récents
+                            ->with(['caller', 'receiver'])
+                            ->latest();
 
             if ($searchQuery) {
                 $callsQuery->where(function ($query) use ($searchQuery) {
@@ -100,11 +97,9 @@ class CallController extends Controller
                 });
             }
 
-            $calls = $callsQuery->get(); // Récupérer les appels
+            $calls = $callsQuery->get();
 
-            // Transformer les appels pour inclure les informations nécessaires au frontend
             $formattedCalls = $calls->map(function ($call) use ($user) {
-                // Déterminer l'autre participant pour l'affichage
                 $otherParticipant = null;
                 if ($call->caller_id === $user->id) {
                     $otherParticipant = $call->receiver;
@@ -112,30 +107,23 @@ class CallController extends Controller
                     $otherParticipant = $call->caller;
                 }
 
-                // Ajouter des drapeaux pour la logique d'affichage côté client
-                // Un appel manqué est un appel où l'utilisateur actuel est le destinataire,
-                // le statut est 'initiated' (pas répondu) et l'appel a été 'ended' ou 'cancelled' (par timeout ou raccrochage de l'appelant)
-                // ou spécifiquement 'missed' si ce statut est utilisé.
                 $isMissedCall = ($call->receiver_id === $user->id && $call->status === 'missed');
-                // Un appel sortant est un appel où l'utilisateur actuel est l'appelant
                 $isOutgoingCall = ($call->caller_id === $user->id);
 
                 return [
                     'id' => $call->id,
                     'call_uuid' => $call->call_uuid,
-                    'caller_id' => $call->caller_id, // Inclure pour la logique côté client
-                    'receiver_id' => $call->receiver_id, // Inclure pour la logique côté client
+                    'caller_id' => $call->caller_id,
+                    'receiver_id' => $call->receiver_id,
                     'call_type' => $call->call_type,
                     'status' => $call->status,
                     'duration' => $call->duration,
-                    // Formater les dates en ISO string pour une manipulation facile en JS
                     'created_at' => $call->created_at->toISOString(),
                     'started_at' => $call->started_at ? $call->started_at->toISOString() : null,
                     'ended_at' => $call->ended_at ? $call->ended_at->toISOString() : null,
-                    'created_at_for_humans' => $call->created_at->diffForHumans(), // Pour l'affichage "il y a X temps"
+                    'created_at_for_humans' => $call->created_at->diffForHumans(),
                     'is_missed_call' => $isMissedCall,
                     'is_outgoing_call' => $isOutgoingCall,
-                    // Informations sur l'autre participant, avec sélection des champs pertinents
                     'caller' => $call->caller ? [
                         'id' => $call->caller->id,
                         'name' => $call->caller->name,
@@ -160,9 +148,6 @@ class CallController extends Controller
             return response()->json(['message' => 'Erreur lors du chargement de l\'historique des appels.'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-
-    // La méthode searchContacts a été déplacée vers UserController.
-    // Elle ne doit plus exister ici dans CallController.
 
     /**
      * Initie un nouvel appel.
@@ -204,31 +189,35 @@ class CallController extends Controller
                 'message' => 'Un appel est déjà en cours ou en attente avec cet utilisateur.',
                 'call_status' => $existingActiveCall->status,
                 'existing_call_uuid' => $existingActiveCall->call_uuid,
-            ], Response::HTTP_CONFLICT); // 409 Conflict
+            ], Response::HTTP_CONFLICT);
         }
 
         try {
+            // Un appel est créé avec le statut 'initiated' dès le début.
+            // Cela est nécessaire pour que le serveur puisse suivre l'appel
+            // et permettre au destinataire de le rejeter ou de l'accepter,
+            // même si la notification initiale n'arrive pas instantanément.
+            // La gestion des appels non répondus (timeout) sera gérée par
+            // un processus en arrière-plan (tâche planifiée) qui marquera
+            // les appels 'initiated' non acceptés comme 'missed' après un délai.
             $call = Call::create([
-                // 'call_uuid' est généré automatiquement par le modèle Call grâce à la méthode boot()
                 'caller_id' => $caller->id,
                 'receiver_id' => $receiver->id,
                 'call_type' => $request->call_type,
                 'status' => 'initiated',
-                // 'started_at' et 'ended_at' sont nulls à l'initiation
             ]);
 
-            // Charger les relations 'caller' et 'receiver' pour la réponse JSON et l'événement
             $call->load(['caller', 'receiver']);
 
-            // Dispatch l'événement en passant l'objet Call complet
             event(new CallInitiated($call));
 
             Log::info('Appel créé et événement CallInitiated dispatché.', ['call_db_id' => $call->id, 'call_uuid' => $call->call_uuid]);
 
             return response()->json([
                 'message' => 'Appel initié avec succès. En attente de réponse...',
-                'call' => $call->toArray(), // Retourner l'objet Call complet comme tableau
-            ], Response::HTTP_OK); // 200 OK
+                'call' => $call->toArray(),
+                'call_status' => $call->status, // Ajout du statut de l'appel pour plus de clarté
+            ], Response::HTTP_OK);
 
         } catch (\Exception $e) {
             Log::error("Erreur lors de l'initiation de l'appel: " . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
@@ -245,16 +234,13 @@ class CallController extends Controller
      */
     public function accept(Request $request, $call_uuid)
     {
-        // La validation 'call_uuid' est implicite via le paramètre de route et le middleware 'exists'
-        // Cependant, on peut la laisser pour une validation explicite du format UUID.
         $request->validate([
-            'call_uuid' => 'uuid|exists:calls,call_uuid', // Valider sur 'call_uuid'
+            'call_uuid' => 'uuid|exists:calls,call_uuid',
         ]);
 
         $receiver = Auth::user();
 
         try {
-            // Utiliser 'call_uuid' du paramètre de route pour trouver l'appel
             $call = Call::where('call_uuid', $call_uuid)
                         ->where('receiver_id', $receiver->id)
                         ->first();
@@ -266,12 +252,11 @@ class CallController extends Controller
 
             if ($call->status !== 'initiated') {
                 Log::warning("Accept: Tentative d'accepter un appel qui n'est pas en statut 'initiated'. Call UUID: {$call_uuid}, Current Status: {$call->status}");
-                // Si l'appel est déjà accepté, rejeté ou terminé, informer le frontend
                 if ($call->status === 'accepted') {
                     return response()->json(['message' => 'Cet appel est déjà accepté.', 'call_status' => $call->status], Response::HTTP_CONFLICT);
                 }
                 if ($call->status === 'rejected') {
-                    return response()->json(['message' => 'Cet appel a déjà été rejeté.', 'call_status' => $call->status], Response::HTTP_GONE); // 410 Gone
+                    return response()->json(['message' => 'Cet appel a déjà été rejeté.', 'call_status' => $call->status], Response::HTTP_GONE);
                 }
                 if (in_array($call->status, ['ended', 'cancelled', 'missed'])) {
                     return response()->json(['message' => 'Cet appel est déjà terminé ou annulé.', 'call_status' => $call->status], Response::HTTP_GONE);
@@ -281,13 +266,12 @@ class CallController extends Controller
 
             $call->update([
                 'status' => 'accepted',
-                'started_at' => now(), // Enregistrer l'heure de début de l'appel
+                'started_at' => now(),
             ]);
 
             Log::info("Appel accepté: Call UUID {$call_uuid}, Receiver ID {$receiver->id}, Caller ID {$call->caller_id}");
 
-            // Passer l'objet Call complet à l'événement CallAccepted
-            $call->load(['caller', 'receiver']); // Charger pour l'événement
+            $call->load(['caller', 'receiver']);
             event(new CallAccepted($call));
 
             return response()->json(['message' => 'Appel accepté avec succès.'], Response::HTTP_OK);
@@ -308,13 +292,13 @@ class CallController extends Controller
     public function reject(Request $request, $call_uuid)
     {
         $request->validate([
-            'call_uuid' => 'uuid|exists:calls,call_uuid', // Valider sur 'call_uuid'
+            'call_uuid' => 'uuid|exists:calls,call_uuid',
         ]);
 
         $receiver = Auth::user();
 
         try {
-            $call = Call::where('call_uuid', $call_uuid) // Utiliser $call_uuid du paramètre de route
+            $call = Call::where('call_uuid', $call_uuid)
                         ->where('receiver_id', $receiver->id)
                         ->first();
 
@@ -325,7 +309,6 @@ class CallController extends Controller
 
             if ($call->status !== 'initiated') {
                 Log::warning("Reject: Tentative de rejeter un appel qui n'est pas en statut 'initiated'. Call UUID: {$call_uuid}, Current Status: {$call->status}");
-                // Si l'appel est déjà accepté, rejeté ou terminé, informer le frontend
                 if ($call->status === 'accepted') {
                     return response()->json(['message' => 'Cet appel est déjà accepté et ne peut plus être rejeté.', 'call_status' => $call->status], Response::HTTP_CONFLICT);
                 }
@@ -340,13 +323,12 @@ class CallController extends Controller
 
             $call->update([
                 'status' => 'rejected',
-                'ended_at' => now(), // Marquer la fin du rejet
+                'ended_at' => now(),
             ]);
 
             Log::info("Appel rejeté: Call UUID {$call_uuid}, Receiver ID {$receiver->id}, Caller ID {$call->caller_id}");
 
-            // Passer l'objet Call complet à l'événement CallRejected
-            $call->load(['caller', 'receiver']); // Charger pour l'événement
+            $call->load(['caller', 'receiver']);
             event(new CallRejected($call));
 
             return response()->json(['message' => 'Appel rejeté avec succès.'], Response::HTTP_OK);
@@ -368,16 +350,16 @@ class CallController extends Controller
     {
         $request->validate([
             'call_uuid' => 'uuid|exists:calls,call_uuid',
-            'duration' => 'nullable|integer|min:0', // Durée envoyée par le frontend si l'appel était connecté
+            'duration' => 'nullable|integer|min:0',
         ]);
 
-        $ender = Auth::user(); // L'utilisateur qui met fin à l'appel
+        $ender = Auth::user();
 
         try {
-            $call = Call::where('call_uuid', $call_uuid) // Utiliser $call_uuid du paramètre de route
+            $call = Call::where('call_uuid', $call_uuid)
                         ->where(function($query) use ($ender) {
                             $query->where('caller_id', $ender->id)
-                                  ->orWhere('receiver_id', $ender->id);
+                                    ->orWhere('receiver_id', $ender->id);
                         })
                         ->first();
 
@@ -386,47 +368,39 @@ class CallController extends Controller
                 return response()->json(['message' => 'Appel non trouvé ou non valide pour la fin.'], Response::HTTP_NOT_FOUND);
             }
 
-            // Si l'appel est déjà dans un état final, ne rien faire
             if (in_array($call->status, ['ended', 'rejected', 'cancelled', 'missed'])) {
                 Log::info("End: Tentative de terminer un appel déjà dans un état final. Call UUID: {$call_uuid}, Current Status: {$call->status}");
                 return response()->json([
                     'message' => 'L\'appel est déjà terminé ou dans un état final.',
                     'final_status' => $call->status
-                ], Response::HTTP_OK); // OK car l'action est "accomplie"
+                ], Response::HTTP_OK);
             }
 
-            $updateData = ['ended_at' => now()]; // Toujours définir ended_at lors de la fin
+            $updateData = ['ended_at' => now()];
 
-            // Logique pour déterminer le statut final de l'appel
             if ($call->status === 'initiated') {
                 if ($call->caller_id === $ender->id) {
-                    // L'appelant a annulé l'appel avant qu'il ne soit accepté
                     $updateData['status'] = 'cancelled';
                 } elseif ($call->receiver_id === $ender->id) {
-                    // Le destinataire raccroche avant d'accepter (équivalent à rejeter mais via le bouton "fin")
-                    $updateData['status'] = 'rejected'; // Utilisation de 'rejected' pour la clarté
+                    $updateData['status'] = 'rejected';
                 }
             } else if ($call->status === 'accepted') {
-                // L'appel était accepté et est maintenant terminé
                 $updateData['status'] = 'ended';
                 if ($request->has('duration')) {
                     $updateData['duration'] = $request->duration;
                 } else {
-                    // Calculer la durée si elle n'est pas fournie et started_at existe
                     if ($call->started_at) {
                         $updateData['duration'] = now()->diffInSeconds($call->started_at);
                     }
                 }
             }
-            // Aucun autre statut ne devrait être géré ici car les autres sont des états finaux.
 
             $call->update($updateData);
 
             Log::info("Appel terminé: Call UUID {$call_uuid}, Ender ID {$ender->id}, Final Status: {$call->status}");
 
-            // Charger les relations pour l'événement CallEnded
             $call->load(['caller', 'receiver']);
-            event(new CallEnded($call)); // Passer l'objet Call complet
+            event(new CallEnded($call));
 
             return response()->json(['message' => 'Appel terminé avec succès.', 'final_status' => $call->status], Response::HTTP_OK);
 
@@ -447,14 +421,13 @@ class CallController extends Controller
     public function signal(Request $request, $call_uuid)
     {
         $request->validate([
-            'call_uuid' => 'uuid|exists:calls,call_uuid', // Valider sur 'call_uuid'
+            'call_uuid' => 'uuid|exists:calls,call_uuid',
             'receiver_id' => 'required|exists:users,id',
-            'type' => 'required|in:offer,answer,ice-candidate', // 'ice-candidate' est correct
-            'payload' => 'required|array', // Le payload contient les données SDP ou ICE
+            'type' => 'required|in:offer,answer,ice-candidate',
+            'payload' => 'required|array',
         ]);
 
         $sender = Auth::user();
-        // Le receiver est déjà récupéré par User::find($request->receiver_id)
         $receiver = User::find($request->receiver_id);
 
         if (!$receiver) {
@@ -462,30 +435,26 @@ class CallController extends Controller
             return response()->json(['message' => 'Destinataire du signal non trouvé.'], Response::HTTP_NOT_FOUND);
         }
 
-        $call = Call::where('call_uuid', $call_uuid)->first(); // Utiliser $call_uuid du paramètre de route
+        $call = Call::where('call_uuid', $call_uuid)->first();
 
         if (!$call) {
             Log::warning("Signalisation: Appel non trouvé. Call UUID: {$call_uuid}");
             return response()->json(['message' => 'Appel non trouvé.'], Response::HTTP_NOT_FOUND);
         }
 
-        // Vérifier que l'expéditeur du signal est bien un participant de l'appel
         if ($sender->id !== $call->caller_id && $sender->id !== $call->receiver_id) {
             Log::warning("Signalisation: Expéditeur non participant à l'appel. Call UUID: {$call->call_uuid}, Sender ID: {$sender->id}");
-            return response()->json(['message' => 'Vous n\'êtes pas un participant valide pour cet appel.'], Response::HTTP_FORBIDDEN); // 403 Forbidden
+            return response()->json(['message' => 'Vous n\'êtes pas un participant valide pour cet appel.'], Response::HTTP_FORBIDDEN);
         }
 
-        // Vérifier que le destinataire du signal est bien l'autre participant
         $expectedReceiverId = ($sender->id === $call->caller_id) ? $call->receiver_id : $call->caller_id;
         if ($receiver->id != $expectedReceiverId) {
             Log::warning("Signalisation: Destinataire du signal incorrect. Call UUID: {$call->call_uuid}, Expected Receiver ID: {$expectedReceiverId}, Actual Receiver ID: {$receiver->id}");
             return response()->json(['message' => 'Destinataire du signal incorrect pour cet appel.'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Logique pour s'assurer que le signal n'est envoyé que si l'appel est dans un état valide pour ce type de signal.
         switch ($request->type) {
             case 'offer':
-                // Une offre ne devrait être envoyée que si l'appel est 'initiated'.
                 if ($call->status !== 'initiated') {
                     Log::warning("Signalisation: Offre reçue pour un appel non initié. Call UUID: {$call->call_uuid}, Status: {$call->status}");
                     return response()->json(['message' => 'L\'appel n\'est pas dans un état valide pour recevoir une offre.'], Response::HTTP_CONFLICT);
@@ -493,7 +462,6 @@ class CallController extends Controller
                 break;
 
             case 'answer':
-                // Une réponse ne devrait être envoyée que si l'appel est 'initiated'.
                 if ($call->status !== 'initiated') {
                     Log::warning("Signalisation: Réponse reçue pour un appel non initié. Call UUID: {$call->call_uuid}, Status: {$call->status}");
                     return response()->json(['message' => 'L\'appel n\'est pas dans un état valide pour recevoir une réponse.'], Response::HTTP_CONFLICT);
@@ -501,7 +469,6 @@ class CallController extends Controller
                 break;
 
             case 'ice-candidate':
-                // Les ICE candidates peuvent être échangés tant que l'appel est 'initiated' ou 'accepted'.
                 if ($call->status !== 'initiated' && $call->status !== 'accepted') {
                     Log::warning("Signalisation: ICE Candidate reçu pour un appel non actif. Call UUID: {$call->call_uuid}, Status: {$call->status}");
                     return response()->json(['message' => 'L\'appel n\'est pas dans un état valide pour échanger des ICE candidates.'], Response::HTTP_CONFLICT);
@@ -514,13 +481,12 @@ class CallController extends Controller
         }
 
         try {
-            // CORRECTION ICI : Passer les objets User complets ($sender, $receiver) au lieu de leurs IDs
             event(new CallSignal(
-                $call->call_uuid, // L'identifiant unique de l'appel
-                $sender,          // <-- Objet User complet
-                $receiver,        // <-- Objet User complet
-                $request->type,   // 'offer', 'answer', 'ice-candidate'
-                $request->payload // Les données SDP ou ICE
+                $call->call_uuid,
+                $sender,
+                $receiver,
+                $request->type,
+                $request->payload
             ));
 
             Log::info("Signalisation envoyée: Call UUID {$call_uuid}, Type: {$request->type}, Sender ID: {$sender->id}, Receiver ID: {$receiver->id}");

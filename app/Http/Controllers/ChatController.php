@@ -9,6 +9,8 @@ use App\Models\Message;
 use App\Models\User;
 use App\Events\MessageSent;
 use App\Events\MessageRead;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 class ChatController extends Controller
 {
@@ -56,7 +58,7 @@ class ChatController extends Controller
     public function show(Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
-            abort(403, 'Accès non autorisé à cette discussion.');
+            abort(Response::HTTP_FORBIDDEN, 'Accès non autorisé à cette discussion.');
         }
 
         $user = Auth::user();
@@ -79,29 +81,38 @@ class ChatController extends Controller
     public function sendMessage(Request $request, Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
-            return response()->json(['error' => 'Accès non autorisé à cette discussion.'], 403);
+            return response()->json(['error' => 'Accès non autorisé à cette discussion.'], Response::HTTP_FORBIDDEN);
         }
 
         $request->validate([
             'body' => 'required|string|max:2000',
         ]);
 
-        $message = $conversation->messages()->create([
-            'user_id' => Auth::id(),
-            'body' => $request->body,
-        ]);
+        try {
+            $message = $conversation->messages()->create([
+                'user_id' => Auth::id(),
+                'body' => $request->body,
+            ]);
 
-        $message->readBy()->attach(Auth::id());
-        $conversation->touch();
+            $message->readBy()->attach(Auth::id());
+            $conversation->touch();
 
-        $message->load('user'); // Load user relationship for the event
+            $message->load('user'); // Charger la relation 'user' pour l'événement
 
-        broadcast(new MessageSent($message))->toOthers(); // Broadcast to all except sender
+            // C'est la ligne clé : diffuser à tous SAUF l'expéditeur
+            broadcast(new MessageSent($message))->toOthers(); 
 
-        return response()->json([
-            'success' => true,
-            'message' => $message->toArray()
-        ]);
+            Log::info("Message envoyé: Conversation ID {$conversation->id}, User ID {$message->user_id}, Message ID {$message->id}");
+
+            return response()->json([
+                'success' => true,
+                'message' => $message->toArray()
+            ], Response::HTTP_CREATED);
+
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de l'envoi du message dans ChatController: " . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['message' => 'Erreur lors de l\'envoi du message. Veuillez réessayer.'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     public function markAsRead(Message $message)
@@ -109,7 +120,7 @@ class ChatController extends Controller
         $user = Auth::user();
 
         if (!$message->conversation->users->contains($user->id)) {
-            return response()->json(['error' => 'Accès non autorisé au message.'], 403);
+            return response()->json(['error' => 'Accès non autorisé au message.'], Response::HTTP_FORBIDDEN);
         }
 
         if ($message->user_id === $user->id) {
@@ -119,16 +130,16 @@ class ChatController extends Controller
         if (!$message->readBy->contains($user->id)) {
             $message->readBy()->attach($user->id);
             broadcast(new MessageRead($message->id, $message->conversation_id, $user->id))->toOthers();
-            return response()->json(['status' => 'success', 'message' => 'Message marqué comme lu']);
+            return response()->json(['status' => 'success', 'message' => 'Message marqué comme lu'], Response::HTTP_OK);
         }
 
-        return response()->json(['status' => 'already_read', 'message' => 'Message déjà lu']);
+        return response()->json(['status' => 'already_read', 'message' => 'Message déjà lu'], Response::HTTP_OK);
     }
 
     public function getMessages(Conversation $conversation)
     {
         if (!$conversation->users->contains(Auth::id())) {
-            return response()->json(['error' => 'Accès non autorisé à cette discussion.'], 403);
+            return response()->json(['error' => 'Accès non autorisé à cette discussion.'], Response::HTTP_FORBIDDEN);
         }
 
         $messages = $conversation->messages()
@@ -136,7 +147,7 @@ class ChatController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        return response()->json(['messages' => $messages]);
+        return response()->json(['messages' => $messages], Response::HTTP_OK);
     }
 
     public function searchUsers(Request $request)
@@ -159,13 +170,11 @@ class ChatController extends Controller
                 ->take(2)
                 ->implode('');
 
-            // Using a more consistent hash-based color generation for avatars
-            // This is better than modulo on ID for consistent colors across sessions/users
             $hash = md5($user->email ?? $user->id);
             $user->avatar_bg_color = '#' . substr($hash, 0, 6);
         });
 
-        return response()->json($users);
+        return response()->json($users, Response::HTTP_OK);
     }
 
     public function createConversation(Request $request)
@@ -181,7 +190,7 @@ class ChatController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Vous ne pouvez pas créer une discussion avec vous-même.'
-            ], 400);
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $existingConversation = Conversation::where('is_group', false)
@@ -198,7 +207,7 @@ class ChatController extends Controller
                 'message' => 'Discussion existante trouvée.',
                 'conversation_id' => $existingConversation->id,
                 'redirect_to_existing_chat' => route('chats.show', $existingConversation->id)
-            ]);
+            ], Response::HTTP_OK);
         }
 
         $conversation = Conversation::create(['is_group' => false]);
@@ -209,6 +218,6 @@ class ChatController extends Controller
             'message' => 'Nouvelle discussion créée.',
             'conversation_id' => $conversation->id,
             'redirect_to_existing_chat' => route('chats.show', $conversation->id)
-        ]);
+        ], Response::HTTP_CREATED);
     }
 }

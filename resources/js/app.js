@@ -46,5 +46,23 @@ if (csrfToken) {
     console.error('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
 }
 
-// La définition de window.Laravel doit être dans le fichier Blade principal (app.blade.php ou layouts/user.blade.php)
-// et non ici dans app.js.
+// --- Définition de la fonction showCustomAlert globalement ---
+function showCustomAlert(message, type = 'info') {
+    const alertDiv = document.getElementById('customAlert');
+    const alertMessageSpan = document.getElementById('customAlertMessage');
+    if (alertDiv && alertMessageSpan) { // Vérifier si les éléments existent
+        alertMessageSpan.textContent = message;
+        alertDiv.className = `alert alert-${type} fixed-top text-center`;
+        alertDiv.style.display = 'block';
+        setTimeout(() => {
+            alertDiv.style.display = 'none';
+        }, 5000);
+    } else {
+        // Fallback si l'élément d'alerte personnalisé n'est pas sur la page
+        console.warn('Custom alert element not found. Displaying standard alert:', message);
+        alert(message);
+    }
+}
+
+// Rendre la fonction accessible globalement via l'objet window
+window.showCustomAlert = showCustomAlert;
